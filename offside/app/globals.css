@@ -1,7 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-navy:        #0F1B2D;
+  --color-indigo:      #5B6EF5;
+  --color-indigo-mid:  #8B9CF7;
+  --color-indigo-bg:   #1C2547;
+  --color-coral:       #F04E37;
+  --color-coral-mid:   #F47A6A;
+  --color-steel:       #8A9BAB;
+  --color-warm:        #F5F4F1;
+  --color-card:        #162030;
+  --color-border:      #1E2F42;
+
+  --font-grotesk: "Space Grotesk", sans-serif;
+  --font-sans:    "Inter", sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+}
 
 :root {
   --navy:       #0F1B2D;
@@ -28,23 +43,19 @@ body {
 .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
 .font-mono    { font-family: 'JetBrains Mono', monospace; }
 
-/* Scrollbar */
 ::-webkit-scrollbar       { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--navy); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* Transitions */
 * { transition-property: background-color, border-color, color, opacity, transform;
     transition-duration: 150ms; transition-timing-function: ease; }
 
-/* Live pulse */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.3; }
 }
 .live-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
 
-/* Rank change animations */
 @keyframes slide-up {
   from { transform: translateY(4px); opacity: 0; }
   to   { transform: translateY(0);   opacity: 1; }
