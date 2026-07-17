@@ -18,7 +18,7 @@ export default function StatsPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen pb-16 sm:pb-0">
         <Navbar />
         <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -36,7 +36,7 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
         <h2 className="font-grotesk text-lg font-medium text-warm mb-4">My stats</h2>
