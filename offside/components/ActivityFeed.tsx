@@ -14,7 +14,7 @@ function timeAgo(date: string) {
 }
 
 export function ActivityFeed() {
-  const { data } = useSWR("/api/activity", fetcher, { refreshInterval: 20000 });
+  const { data } = useSWR("/api/activity", fetcher, { refreshInterval: 20000, revalidateOnFocus: false });
 
   return (
     <div className="bg-card border border-border rounded-xl">
