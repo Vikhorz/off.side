@@ -15,7 +15,10 @@ model User {
   totalPoints  Int      @default(0)
   createdAt    DateTime @default(now())
   predictions  Prediction[]
-  boosts       BoostAllowance[]
+  // The single boost token for the whole tournament. Holds the id of whichever
+  // match currently has it assigned, or null if unused. Reassignable between
+  // open matches; locked in permanently once its holder match kicks off.
+  boostMatchId String?
 }
 
 model Match {
@@ -44,14 +47,4 @@ model Prediction {
   user          User     @relation(fields: [userId], references: [id])
   match         Match    @relation(fields: [matchId], references: [id])
   @@unique([userId, matchId])
-}
-
-model BoostAllowance {
-  id      String    @id @default(cuid())
-  userId  String
-  round   String
-  used    Boolean   @default(false)
-  usedAt  DateTime?
-  user    User      @relation(fields: [userId], references: [id])
-  @@unique([userId, round])
 }
