@@ -17,7 +17,9 @@ export async function GET() {
       const link = block.match(/<link>(.*?)<\/link>/)?.[1] ?? "";
       const pubDate = block.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
       const description = block.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/)?.[1] ?? "";
-      return { title, link, pubDate, description: description.replace(/<[^>]+>/g, "").slice(0, 140) };
+      // BBC feeds include <media:thumbnail width="240" height="135" url="..."/>
+      const image = block.match(/<media:thumbnail[^>]*\burl="([^"]+)"/)?.[1] ?? null;
+      return { title, link, pubDate, image, description: description.replace(/<[^>]+>/g, "").slice(0, 140) };
     });
 
     return NextResponse.json(items);
