@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MatchCard } from "@/components/MatchCard";
+import { Countdown } from "@/components/Countdown";
+import { ActivityFeed } from "@/components/ActivityFeed";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -27,12 +29,22 @@ export default function DashboardPage() {
   }
 
   const open = matches.filter((m: any) => new Date() < new Date(m.kickoff));
-  const boostAvailable = true; // derived server-side per-round on save; UI shows optimistic true
+  const nextMatch = [...open].sort((a: any, b: any) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())[0];
+  const boostAvailable = true;
 
   return (
     <div className="min-h-screen">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
+        {nextMatch && (
+          <div className="mb-5">
+            <Countdown
+              target={nextMatch.kickoff}
+              label={`Next: ${nextMatch.homeTeam} vs ${nextMatch.awayTeam}`}
+            />
+          </div>
+        )}
+
         <div className="mb-4">
           <h2 className="font-grotesk text-lg font-medium text-warm">Upcoming matches</h2>
           <p className="text-xs text-steel mt-0.5">{open.length} predictions open</p>
@@ -43,6 +55,10 @@ export default function DashboardPage() {
         {matches.map((m: any) => (
           <MatchCard key={m.id} match={m} boostAvailable={boostAvailable} onSaved={() => mutate()} />
         ))}
+
+        <div className="mt-6">
+          <ActivityFeed />
+        </div>
       </div>
     </div>
   );
