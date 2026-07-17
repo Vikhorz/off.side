@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
   if (status === "loading" || !matches) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen pb-16 sm:pb-0">
         <Navbar />
         <div className="max-w-lg mx-auto px-4 py-6 space-y-2">
           <div className="skeleton h-20 w-full mb-4" />
@@ -37,7 +37,7 @@ export default function DashboardPage() {
   const boostAvailable = true;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
         {nextMatch && (
