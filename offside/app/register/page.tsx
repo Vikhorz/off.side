@@ -43,21 +43,21 @@ export default function RegisterPage() {
             <label className="text-xs text-steel block mb-1">Username</label>
             <input
               value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={20}
-              className="w-full bg-navy border border-border rounded-md px-3 py-2 text-sm text-warm outline-none focus:border-indigo"
+              className="w-full bg-navy border border-border rounded-md px-3 py-2 text-base sm:text-sm text-warm outline-none focus:border-indigo"
             />
           </div>
           <div>
             <label className="text-xs text-steel block mb-1">Password</label>
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
-              className="w-full bg-navy border border-border rounded-md px-3 py-2 text-sm text-warm outline-none focus:border-indigo"
+              className="w-full bg-navy border border-border rounded-md px-3 py-2 text-base sm:text-sm text-warm outline-none focus:border-indigo"
             />
           </div>
           <div>
             <label className="text-xs text-steel block mb-1">Email (optional)</label>
             <input
               type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-navy border border-border rounded-md px-3 py-2 text-sm text-warm outline-none focus:border-indigo"
+              className="w-full bg-navy border border-border rounded-md px-3 py-2 text-base sm:text-sm text-warm outline-none focus:border-indigo"
               placeholder="For password recovery"
             />
             {!email && (
