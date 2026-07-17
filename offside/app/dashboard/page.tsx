@@ -13,7 +13,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { data: matches, mutate } = useSWR("/api/matches", fetcher, { refreshInterval: 30000 });
+  const { data: matches, mutate } = useSWR("/api/matches", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -23,7 +23,11 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 py-8 text-center text-steel text-sm">Loading matches…</div>
+        <div className="max-w-lg mx-auto px-4 py-6 space-y-2">
+          <div className="skeleton h-20 w-full mb-4" />
+          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-24 w-full" />
+        </div>
       </div>
     );
   }
