@@ -1,27 +1,39 @@
 "use client";
 import useSWR from "swr";
+import dynamic from "next/dynamic";
 import { Navbar } from "@/components/Navbar";
 import { Badges } from "@/components/Badges";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+
+// Code-split recharts out of the initial bundle — only loaded when the stats
+// page actually renders a chart, not shipped to every route.
+const PointsChart = dynamic(() => import("@/components/PointsChart").then((m) => m.PointsChart), {
+  ssr: false,
+  loading: () => <div className="skeleton h-[140px] w-full" />,
+});
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function StatsPage() {
-  const { data } = useSWR("/api/stats", fetcher);
+  const { data } = useSWR("/api/stats", fetcher, { revalidateOnFocus: false });
 
   if (!data) {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 py-8 text-center text-steel text-sm">Loading…</div>
+        <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="skeleton h-20 w-full" />
+            <div className="skeleton h-20 w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="skeleton h-16 w-full" />
+            <div className="skeleton h-16 w-full" />
+          </div>
+          <div className="skeleton h-[140px] w-full" />
+        </div>
       </div>
     );
   }
-
-  const chartData = [
-    { name: "You", points: data.totalPoints },
-    { name: "Group avg", points: data.groupAverage },
-  ];
 
   return (
     <div className="min-h-screen">
@@ -44,15 +56,7 @@ export default function StatsPage() {
 
         <div className="bg-card border border-border rounded-xl p-4 mb-4">
           <div className="text-xs text-steel mb-3">You vs group average</div>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E2F42" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: "#8A9BAB", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#8A9BAB", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "#0F1B2D", border: "1px solid #1E2F42", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="points" fill="#5B6EF5" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <PointsChart you={data.totalPoints} groupAverage={data.groupAverage} />
         </div>
 
         <div className="bg-card border border-border rounded-xl divide-y divide-border">
