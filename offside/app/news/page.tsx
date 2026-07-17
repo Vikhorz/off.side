@@ -17,7 +17,7 @@ export default function NewsPage() {
   const { data, isLoading } = useSWR("/api/news", fetcher, { revalidateOnFocus: false });
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
         <h2 className="font-grotesk text-lg font-medium text-warm mb-1">Football news</h2>
@@ -25,7 +25,7 @@ export default function NewsPage() {
 
         {isLoading && (
           <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-20 w-full" />)}
+            {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-24 w-full" />)}
           </div>
         )}
 
@@ -40,13 +40,27 @@ export default function NewsPage() {
               href={item.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="block bg-card border border-border rounded-xl p-3.5 hover:border-indigo transition-colors"
+              className="flex gap-3 bg-card border border-border rounded-xl p-3 hover:border-indigo transition-colors"
             >
-              <div className="text-sm font-medium text-warm leading-snug">{item.title}</div>
-              {item.description && (
-                <p className="text-xs text-steel mt-1.5 leading-relaxed">{item.description}</p>
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt=""
+                  loading="lazy"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 bg-navy"
+                />
+              ) : (
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-navy flex-shrink-0 flex items-center justify-center text-steel text-lg">
+                  ⚽
+                </div>
               )}
-              <div className="text-[10px] text-steel mt-2">{timeAgo(item.pubDate)}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-warm leading-snug line-clamp-2">{item.title}</div>
+                {item.description && (
+                  <p className="text-xs text-steel mt-1 leading-relaxed line-clamp-2 hidden sm:block">{item.description}</p>
+                )}
+                <div className="text-[10px] text-steel mt-1.5">{timeAgo(item.pubDate)}</div>
+              </div>
             </a>
           ))}
         </div>
