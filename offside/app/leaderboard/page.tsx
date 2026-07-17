@@ -17,7 +17,7 @@ export default function LeaderboardPage() {
   const rest = data?.slice(3) ?? [];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
         <h2 className="font-grotesk text-lg font-medium text-warm mb-4">Leaderboard</h2>
