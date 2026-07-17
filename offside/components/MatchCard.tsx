@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Toast } from "./Toast";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -25,6 +26,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const [boosted, setBoosted] = useState(match.userPrediction?.boosted ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   async function save() {
     setSaving(true);
@@ -40,6 +42,8 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         setError(data.error ?? "Could not save prediction");
       } else {
         onSaved();
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
       }
     } catch {
       setError("Network error — try again");
@@ -126,6 +130,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         </div>
       )}
       {error && <p className="text-[11px] text-coral-mid mt-1.5">{error}</p>}
+      <Toast message="Prediction saved" show={showToast} />
     </div>
   );
 }
