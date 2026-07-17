@@ -1,6 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { Navbar } from "@/components/Navbar";
+import { Badges } from "@/components/Badges";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -38,6 +39,8 @@ export default function StatsPage() {
             <div className="text-[11px] text-steel mt-1">Prediction accuracy</div>
           </div>
         </div>
+
+        <Badges history={data.history} />
 
         <div className="bg-card border border-border rounded-xl p-4 mb-4">
           <div className="text-xs text-steel mb-3">You vs group average</div>
