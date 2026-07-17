@@ -73,8 +73,8 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="font-grotesk text-sm font-medium text-warm flex-1">{match.homeTeam}</span>
-        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-2.5 py-1">
+        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-2.5 py-1 flex-shrink-0">
           <input
             type="number" min={0} max={20}
             value={home}
@@ -93,7 +93,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
             aria-label={`${match.awayTeam} predicted score`}
           />
         </div>
-        <span className="font-grotesk text-sm font-medium text-warm flex-1 text-right">{match.awayTeam}</span>
+        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-right">{match.awayTeam}</span>
       </div>
 
       {match.homeResult !== null && (
@@ -106,13 +106,13 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       )}
 
       {!locked && (
-        <div className="flex justify-between items-center mt-2.5">
-          <label className="flex items-center gap-1.5 text-[11px] text-steel cursor-pointer">
+        <div className="flex flex-wrap justify-between items-center gap-y-2 mt-2.5">
+          <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-steel cursor-pointer">
             <button
               type="button"
               onClick={() => setBoosted((b) => !b)}
               disabled={!boostAvailable && !boosted}
-              className={`w-7 h-4 rounded-full flex items-center px-0.5 transition-colors ${
+              className={`w-7 h-4 rounded-full flex items-center px-0.5 transition-colors flex-shrink-0 ${
                 boosted ? "bg-indigo justify-end" : "bg-border justify-start"
               } ${!boostAvailable && !boosted ? "opacity-40 cursor-not-allowed" : ""}`}
             >
