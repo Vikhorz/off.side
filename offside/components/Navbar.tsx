@@ -2,11 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
   { href: "/dashboard", label: "Predict" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/stats", label: "My stats" },
+  { href: "/news", label: "News" },
 ];
 
 export function Navbar() {
@@ -32,10 +34,11 @@ export function Navbar() {
             {l.label}
           </Link>
         ))}
+        <ThemeToggle />
         {session && (
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-xs px-3 py-1.5 rounded-md text-steel hover:text-coral-mid transition-colors ml-2"
+            className="text-xs px-3 py-1.5 rounded-md text-steel hover:text-coral-mid transition-colors ml-1"
           >
             Sign out
           </button>
