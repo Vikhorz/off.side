@@ -11,7 +11,7 @@ const medalStyles: Record<number, { bg: string; ring: string; label: string }> =
 };
 
 export default function LeaderboardPage() {
-  const { data } = useSWR("/api/leaderboard", fetcher, { refreshInterval: 30000 });
+  const { data } = useSWR("/api/leaderboard", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
 
   const top3 = data?.slice(0, 3) ?? [];
   const rest = data?.slice(3) ?? [];
@@ -22,7 +22,17 @@ export default function LeaderboardPage() {
       <div className="max-w-lg mx-auto px-4 py-6">
         <h2 className="font-grotesk text-lg font-medium text-warm mb-4">Leaderboard</h2>
 
-        {!data && <p className="text-sm text-steel text-center py-8">Loading…</p>}
+        {!data && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="skeleton h-24 w-full" />
+              <div className="skeleton h-24 w-full" />
+              <div className="skeleton h-24 w-full" />
+            </div>
+            <div className="skeleton h-12 w-full" />
+            <div className="skeleton h-12 w-full" />
+          </div>
+        )}
         {data?.length === 0 && <p className="text-sm text-steel text-center py-8">No players yet.</p>}
 
         {top3.length > 0 && (
