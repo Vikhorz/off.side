@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Toast } from "./Toast";
+import { useI18n } from "@/lib/i18n";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -15,23 +16,77 @@ type Match = {
   userPrediction: Prediction;
 };
 
+function ScoreStepper({ value, onChange, disabled, label }: {
+  value: number | "";
+  onChange: (v: number | "") => void;
+  disabled: boolean;
+  label: string;
+}) {
+  function handleTextChange(raw: string) {
+    const digits = raw.replace(/[^0-9]/g, "");
+    if (digits === "") { onChange(""); return; }
+    onChange(Math.max(0, Math.min(20, Number(digits))));
+  }
+  function step(delta: number) {
+    const current = value === "" ? 0 : value;
+    onChange(Math.max(0, Math.min(20, current + delta)));
+  }
+
+  return (
+    <div className="flex items-center">
+      <button
+        type="button"
+        onClick={() => step(-1)}
+        disabled={disabled || value === 0 || value === ""}
+        className="w-5 h-6 flex items-center justify-center text-steel disabled:opacity-30 hover:text-warm transition-colors"
+        aria-label={`Decrease ${label} score`}
+      >
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5" /></svg>
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="0"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => handleTextChange(e.target.value)}
+        className="w-6 text-center text-base font-medium text-warm bg-transparent outline-none font-mono disabled:text-steel placeholder:text-steel/50"
+        aria-label={`${label} predicted score`}
+      />
+      <button
+        type="button"
+        onClick={() => step(1)}
+        disabled={disabled || value === 20}
+        className="w-5 h-6 flex items-center justify-center text-steel disabled:opacity-30 hover:text-warm transition-colors"
+        aria-label={`Increase ${label} score`}
+      >
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+    </div>
+  );
+}
+
 export function MatchCard({ match, boostAvailable, onSaved }: {
   match: Match;
   boostAvailable: boolean;
   onSaved: () => void;
 }) {
+  const { t } = useI18n();
   const locked = new Date() >= new Date(match.kickoff);
-  const [home, setHome] = useState(match.userPrediction?.homeScore ?? 0);
-  const [away, setAway] = useState(match.userPrediction?.awayScore ?? 0);
+  const [home, setHome] = useState<number | "">(match.userPrediction?.homeScore ?? "");
+  const [away, setAway] = useState<number | "">(match.userPrediction?.awayScore ?? "");
   const [boosted, setBoosted] = useState(match.userPrediction?.boosted ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
-  // "Saved" means the score inputs are locked/greyed until Edit is pressed —
-  // starts true if a prediction already exists for this match.
   const [saved, setSaved] = useState(!!match.userPrediction);
 
   async function save() {
+    if (home === "" || away === "") {
+      setError(t("match.enterBoth"));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -44,9 +99,6 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       if (!res.ok) {
         setError(data.error ?? "Could not save prediction");
       } else {
-        // Sync boosted state to what the server actually validated —
-        // it may differ from what was requested (e.g. boost moved elsewhere,
-        // or unavailable because it's locked into another match).
         setBoosted(data.boosted ?? false);
         setSaved(true);
         onSaved();
@@ -61,9 +113,10 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   }
 
   const isLive = locked && match.homeResult === null;
-  const kickoffLabel = new Date(match.kickoff).toLocaleString(undefined, {
+  const kickoffLabel = new Date(match.kickoff).toLocaleString("en-GB", {
+    timeZone: "Asia/Baghdad",
     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  }) + ` (${t("match.baghdad")})`;
 
   const inputsDisabled = locked || saved;
 
@@ -73,47 +126,33 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         <span className="text-[10px] text-steel">{match.group} · {kickoffLabel}</span>
         {isLive ? (
           <span className="flex items-center gap-1 text-[10px] text-coral-mid font-medium">
-            <span className="w-1.5 h-1.5 bg-coral rounded-full live-dot" /> Live
+            <span className="w-1.5 h-1.5 bg-coral rounded-full live-dot" /> {t("match.live")}
           </span>
         ) : locked ? (
-          <span className="text-[10px] text-steel">Final</span>
+          <span className="text-[10px] text-steel">{t("match.final")}</span>
         ) : saved ? (
           <span className="flex items-center gap-1 text-[10px] text-indigo-mid font-medium">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
-            Saved
+            {t("match.saved")}
           </span>
         ) : (
-          <span className="text-[10px] text-steel">Opens for predictions</span>
+          <span className="text-[10px] text-steel">{t("match.opens")}</span>
         )}
       </div>
 
       <div className={`flex items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
         <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
-        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-2.5 py-1 flex-shrink-0">
-          <input
-            type="number" min={0} max={20}
-            value={home}
-            disabled={inputsDisabled}
-            onChange={(e) => setHome(Math.max(0, Math.min(20, Number(e.target.value))))}
-            className="w-6 text-center text-base font-medium text-warm bg-transparent outline-none font-mono disabled:text-steel"
-            aria-label={`${match.homeTeam} predicted score`}
-          />
+        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1 py-1 flex-shrink-0">
+          <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
-          <input
-            type="number" min={0} max={20}
-            value={away}
-            disabled={inputsDisabled}
-            onChange={(e) => setAway(Math.max(0, Math.min(20, Number(e.target.value))))}
-            className="w-6 text-center text-base font-medium text-warm bg-transparent outline-none font-mono disabled:text-steel"
-            aria-label={`${match.awayTeam} predicted score`}
-          />
+          <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-right">{match.awayTeam}</span>
+        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
       </div>
 
       {match.homeResult !== null && (
         <div className="text-[11px] text-steel mt-2 text-center">
-          Final result: {match.homeResult}–{match.awayResult}
+          {t("match.finalResult")}: {match.homeResult}–{match.awayResult}
           {match.userPrediction?.pointsAwarded !== null && match.userPrediction?.pointsAwarded !== undefined && (
             <span className="text-indigo-mid font-medium"> · +{match.userPrediction.pointsAwarded} pts</span>
           )}
@@ -133,7 +172,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
             >
               <span className="w-3 h-3 bg-white rounded-full block" />
             </button>
-            {boosted ? "Boost active (2× points)" : boostAvailable ? "Use boost (2× points)" : "Boost used on another match"}
+            {boosted ? t("match.boostActive") : boostAvailable ? t("match.useBoost") : t("match.boostUsedElsewhere")}
           </label>
 
           {saved ? (
@@ -141,7 +180,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
               onClick={() => setSaved(false)}
               className="text-[11px] font-medium px-3 py-1.5 rounded-md border border-border text-steel hover:text-warm hover:border-indigo transition-colors"
             >
-              Edit
+              {t("match.edit")}
             </button>
           ) : (
             <button
@@ -149,13 +188,13 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
               disabled={saving}
               className="text-[11px] font-medium px-3 py-1.5 rounded-md bg-indigo text-white hover:bg-indigo/90 disabled:opacity-50 transition-colors"
             >
-              {saving ? "Saving…" : "Save prediction"}
+              {saving ? t("match.saving") : t("match.save")}
             </button>
           )}
         </div>
       )}
       {error && <p className="text-[11px] text-coral-mid mt-1.5">{error}</p>}
-      <Toast message="Prediction saved" show={showToast} />
+      <Toast message={t("match.saved.toast")} show={showToast} />
     </div>
   );
 }
