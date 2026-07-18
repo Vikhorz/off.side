@@ -3,13 +3,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageToggle } from "./LanguageToggle";
+import { useI18n } from "@/lib/i18n";
 
-const links = [
-  { href: "/dashboard", label: "Predict", icon: "target" },
-  { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
-  { href: "/stats", label: "My stats", icon: "chart" },
-  { href: "/news", label: "News", icon: "news" },
-];
+function useLinks() {
+  const { t } = useI18n();
+  return [
+    { href: "/dashboard", label: t("nav.predict"), icon: "target" },
+    { href: "/leaderboard", label: t("nav.leaderboard"), icon: "trophy" },
+    { href: "/stats", label: t("nav.stats"), icon: "chart" },
+    { href: "/news", label: t("nav.news"), icon: "news" },
+  ];
+}
 
 function NavIcon({ name }: { name: string }) {
   const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 } as const;
@@ -30,16 +35,16 @@ function NavIcon({ name }: { name: string }) {
 export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { t } = useI18n();
+  const links = useLinks();
 
   return (
     <>
-      {/* Top bar — full nav on desktop, compact on mobile */}
       <nav className="flex items-center justify-between px-4 py-3 border-b border-border bg-navy sticky top-0 z-40">
         <Link href="/dashboard" className="font-grotesk font-bold text-lg text-warm tracking-tight">
           Off<span className="text-indigo">.</span>side
         </Link>
         <div className="flex items-center gap-1">
-          {/* Desktop links */}
           <div className="hidden sm:flex items-center gap-1">
             {links.map((l) => (
               <Link
@@ -53,13 +58,14 @@ export function Navbar() {
               </Link>
             ))}
           </div>
+          <LanguageToggle />
           <ThemeToggle />
           {session && (
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-xs px-2 sm:px-3 py-1.5 rounded-md text-steel hover:text-coral-mid transition-colors ml-1"
+              className="text-xs px-2 sm:px-3 py-1.5 rounded-md text-steel hover:text-coral-mid transition-colors ms-1"
             >
-              <span className="hidden sm:inline">Sign out</span>
+              <span className="hidden sm:inline">{t("nav.signout")}</span>
               <svg className="sm:hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
               </svg>
@@ -68,7 +74,6 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Bottom tab bar — mobile only */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-navy border-t border-border flex items-stretch z-40">
         {links.map((l) => (
           <Link
@@ -79,7 +84,7 @@ export function Navbar() {
             }`}
           >
             <NavIcon name={l.icon} />
-            {l.label === "Leaderboard" ? "Board" : l.label === "My stats" ? "Stats" : l.label}
+            {l.href === "/leaderboard" ? t("nav.board") : l.href === "/stats" ? t("nav.stats") : l.label}
           </Link>
         ))}
       </div>
