@@ -3,9 +3,11 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export default function LoginPage() {
     setError(null);
     const res = await signIn("credentials", { username, password, redirect: false });
     setLoading(false);
-    if (res?.error) setError("Invalid username or password");
+    if (res?.error) setError(t("auth.invalidLogin"));
     else router.push("/dashboard");
   }
 
@@ -28,18 +30,18 @@ export default function LoginPage() {
           <h1 className="font-grotesk text-3xl font-bold text-warm">
             Off<span className="text-indigo">.</span>side
           </h1>
-          <p className="text-xs text-steel mt-2 uppercase tracking-wide">World Cup 2026 · Prediction League</p>
+          <p className="text-xs text-steel mt-2 uppercase tracking-wide">{t("landing.tagline")}</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-card border border-border rounded-xl p-6 space-y-4">
           <div>
-            <label className="text-xs text-steel block mb-1">Username</label>
+            <label className="text-xs text-steel block mb-1">{t("auth.username")}</label>
             <input
               value={username} onChange={(e) => setUsername(e.target.value)} required
               className="w-full bg-navy border border-border rounded-md px-3 py-2 text-base sm:text-sm text-warm outline-none focus:border-indigo"
             />
           </div>
           <div>
-            <label className="text-xs text-steel block mb-1">Password</label>
+            <label className="text-xs text-steel block mb-1">{t("auth.password")}</label>
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
               className="w-full bg-navy border border-border rounded-md px-3 py-2 text-base sm:text-sm text-warm outline-none focus:border-indigo"
@@ -50,11 +52,11 @@ export default function LoginPage() {
             type="submit" disabled={loading}
             className="w-full bg-indigo text-white text-sm font-medium py-2 rounded-md hover:bg-indigo/90 disabled:opacity-50 transition-colors"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t("auth.signingin") : t("auth.signin")}
           </button>
         </form>
         <p className="text-center text-xs text-steel mt-4">
-          No account yet? <Link href="/register" className="text-indigo-mid">Register</Link>
+          {t("auth.noAccount")} <Link href="/register" className="text-indigo-mid">{t("auth.register")}</Link>
         </p>
       </div>
     </div>
