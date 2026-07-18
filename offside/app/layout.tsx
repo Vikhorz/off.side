@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { spaceGrotesk, inter, jetbrainsMono } from "@/lib/fonts";
+import { spaceGrotesk, inter, jetbrainsMono, notoKufiArabic } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "Off.side — World Cup 2026 Predictions",
@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} ${notoKufiArabic.variable}`}
     >
       <body>
         <Providers>{children}</Providers>
