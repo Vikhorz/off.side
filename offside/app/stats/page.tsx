@@ -3,9 +3,8 @@ import useSWR from "swr";
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/Navbar";
 import { Badges } from "@/components/Badges";
+import { useI18n } from "@/lib/i18n";
 
-// Code-split recharts out of the initial bundle — only loaded when the stats
-// page actually renders a chart, not shipped to every route.
 const PointsChart = dynamic(() => import("@/components/PointsChart").then((m) => m.PointsChart), {
   ssr: false,
   loading: () => <div className="skeleton h-[140px] w-full" />,
@@ -14,6 +13,7 @@ const PointsChart = dynamic(() => import("@/components/PointsChart").then((m) =>
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function StatsPage() {
+  const { t } = useI18n();
   const { data } = useSWR("/api/stats", fetcher, { revalidateOnFocus: false });
 
   if (!data) {
@@ -39,36 +39,36 @@ export default function StatsPage() {
     <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
-        <h2 className="font-grotesk text-lg font-medium text-warm mb-4">My stats</h2>
+        <h2 className="font-grotesk text-lg font-medium text-warm mb-4">{t("stats.title")}</h2>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-2xl font-mono font-medium text-indigo-mid">{data.totalPoints}</div>
-            <div className="text-[11px] text-steel mt-1">Total points</div>
+            <div className="text-[11px] text-steel mt-1">{t("stats.totalPoints")}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-2xl font-mono font-medium text-warm">{data.accuracy}%</div>
-            <div className="text-[11px] text-steel mt-1">Prediction accuracy</div>
+            <div className="text-[11px] text-steel mt-1">{t("stats.accuracy")}</div>
           </div>
         </div>
 
         <Badges history={data.history} />
 
         <div className="bg-card border border-border rounded-xl p-4 mb-4">
-          <div className="text-xs text-steel mb-3">You vs group average</div>
+          <div className="text-xs text-steel mb-3">{t("stats.vsAverage")}</div>
           <PointsChart you={data.totalPoints} groupAverage={data.groupAverage} />
         </div>
 
         <div className="bg-card border border-border rounded-xl divide-y divide-border">
-          <div className="px-4 py-2.5 text-xs text-steel">Prediction history</div>
-          {data.history.length === 0 && <p className="text-sm text-steel text-center py-8">No predictions yet.</p>}
+          <div className="px-4 py-2.5 text-xs text-steel">{t("stats.history")}</div>
+          {data.history.length === 0 && <p className="text-sm text-steel text-center py-8">{t("stats.noPredictions")}</p>}
           {data.history.map((h: any, i: number) => (
             <div key={i} className="flex items-center justify-between px-4 py-2.5">
               <div>
                 <div className="text-xs text-warm">{h.match}</div>
                 <div className="text-[10px] text-steel mt-0.5">
-                  Predicted {h.predicted}{h.result ? ` · Result ${h.result}` : " · Upcoming"}
-                  {h.boosted && <span className="text-indigo-mid"> · Boosted</span>}
+                  {t("stats.predicted")} {h.predicted}{h.result ? ` · ${t("stats.result")} ${h.result}` : ` · ${t("stats.upcoming")}`}
+                  {h.boosted && <span className="text-indigo-mid"> · {t("stats.boosted")}</span>}
                 </div>
               </div>
               {h.points !== null && (
