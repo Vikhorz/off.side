@@ -21,16 +21,17 @@ export function LanguageToggle() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  const current = options.find((o) => o.code === lang) ?? options[0];
-
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="text-[11px] font-medium px-2 py-1.5 rounded-md text-steel hover:text-warm hover:bg-card transition-colors"
+        className="w-7 h-7 flex items-center justify-center rounded-md text-steel hover:text-warm hover:bg-card transition-colors"
         aria-label="Change language"
       >
-        {current.label}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
+        </svg>
       </button>
       {open && (
         <div className="absolute end-0 top-full mt-1 bg-card border border-border rounded-md py-1 z-50 min-w-[100px] shadow-lg">
