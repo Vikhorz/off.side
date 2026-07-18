@@ -57,6 +57,15 @@ body {
 .font-grotesk { font-family: var(--font-display), sans-serif; }
 .font-mono    { font-family: var(--font-mono-face), monospace; }
 
+/* Arabic and Kurdish Sorani both use Perso-Arabic script — Space Grotesk and
+   Inter have no glyphs for it at all, so switch the whole type system over
+   to Noto Kufi Arabic (covers both languages) whenever the page is RTL.
+   Its kufic style works well as a display font too, so headings use it as well. */
+[dir="rtl"] body,
+[dir="rtl"] .font-grotesk {
+  font-family: var(--font-arabic), sans-serif;
+}
+
 ::-webkit-scrollbar       { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--navy); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
