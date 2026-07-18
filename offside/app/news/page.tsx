@@ -1,6 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { Navbar } from "@/components/Navbar";
+import { useI18n } from "@/lib/i18n";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -14,14 +15,15 @@ function timeAgo(dateStr: string) {
 }
 
 export default function NewsPage() {
+  const { t } = useI18n();
   const { data, isLoading } = useSWR("/api/news", fetcher, { revalidateOnFocus: false });
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
-        <h2 className="font-grotesk text-lg font-medium text-warm mb-1">Football news</h2>
-        <p className="text-xs text-steel mb-4">Latest from BBC Sport</p>
+        <h2 className="font-grotesk text-lg font-medium text-warm mb-1">{t("news.title")}</h2>
+        <p className="text-xs text-steel mb-4">{t("news.subtitle")}</p>
 
         {isLoading && (
           <div className="space-y-2">
@@ -30,7 +32,7 @@ export default function NewsPage() {
         )}
 
         {data?.length === 0 && !isLoading && (
-          <p className="text-sm text-steel text-center py-8">No news available right now.</p>
+          <p className="text-sm text-steel text-center py-8">{t("news.empty")}</p>
         )}
 
         <div className="space-y-2">
