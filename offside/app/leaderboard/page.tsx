@@ -1,6 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { Navbar } from "@/components/Navbar";
+import { useI18n } from "@/lib/i18n";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -11,6 +12,7 @@ const medalStyles: Record<number, { bg: string; ring: string; label: string }> =
 };
 
 export default function LeaderboardPage() {
+  const { t } = useI18n();
   const { data } = useSWR("/api/leaderboard", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
 
   const top3 = data?.slice(0, 3) ?? [];
@@ -20,7 +22,7 @@ export default function LeaderboardPage() {
     <div className="min-h-screen pb-16 sm:pb-0">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
-        <h2 className="font-grotesk text-lg font-medium text-warm mb-4">Leaderboard</h2>
+        <h2 className="font-grotesk text-lg font-medium text-warm mb-4">{t("leaderboard.title")}</h2>
 
         {!data && (
           <div className="space-y-2">
@@ -33,7 +35,7 @@ export default function LeaderboardPage() {
             <div className="skeleton h-12 w-full" />
           </div>
         )}
-        {data?.length === 0 && <p className="text-sm text-steel text-center py-8">No players yet.</p>}
+        {data?.length === 0 && <p className="text-sm text-steel text-center py-8">{t("leaderboard.noPlayers")}</p>}
 
         {top3.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mb-4">
@@ -62,7 +64,7 @@ export default function LeaderboardPage() {
                   {row.username.slice(0, 2).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium text-warm flex-1">{row.username}</span>
-                <span className="text-[11px] text-steel">{row.scored}/{row.predictions} scored</span>
+                <span className="text-[11px] text-steel">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
                 <span className="font-mono text-sm font-medium text-indigo-mid">{row.totalPoints} pts</span>
               </div>
             ))}
