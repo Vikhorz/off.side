@@ -15,24 +15,26 @@ model User {
   totalPoints  Int      @default(0)
   createdAt    DateTime @default(now())
   predictions  Prediction[]
-  // The single boost token for the whole tournament. Holds the id of whichever
-  // match currently has it assigned, or null if unused. Reassignable between
-  // open matches; locked in permanently once its holder match kicks off.
-  boostMatchId String?
+  weeklyBoosts WeeklyBoost[]
 }
 
 model Match {
-  id          String   @id
+  // Uses football-data.org's own match id directly (as a string) rather than
+  // generating our own — makes fixture syncing across hundreds of matches a
+  // simple idempotent upsert instead of fragile team-name matching.
+  id          String    @id
+  competition String    // competition code: PL, CL, PD, SA, FL1, BL1
   homeTeam    String
   awayTeam    String
-  homeFlag    String   @default("")
-  awayFlag    String   @default("")
-  group       String
+  round       String    // e.g. "Matchday 12", "Quarter-final"
   kickoff     DateTime
   homeResult  Int?
   awayResult  Int?
   scoredAt    DateTime?
   predictions Prediction[]
+
+  @@index([kickoff])
+  @@index([competition])
 }
 
 model Prediction {
@@ -47,4 +49,17 @@ model Prediction {
   user          User     @relation(fields: [userId], references: [id])
   match         Match    @relation(fields: [matchId], references: [id])
   @@unique([userId, matchId])
+}
+
+// One boost token per user per calendar week (Mon-Sun, ISO week key like
+// "2026-W12"). Reassignable between matches within that same week; locked in
+// permanently once its holder match kicks off, same reassignment rules as
+// before, just re-scoped to a week instead of the whole tournament.
+model WeeklyBoost {
+  id      String  @id @default(cuid())
+  userId  String
+  weekKey String
+  matchId String?
+  user    User    @relation(fields: [userId], references: [id])
+  @@unique([userId, weekKey])
 }
