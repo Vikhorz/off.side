@@ -7,9 +7,10 @@ type Prediction = { homeScore: number; awayScore: number; boosted: boolean; poin
 
 type Match = {
   id: string;
+  competition: string;
   homeTeam: string;
   awayTeam: string;
-  group: string;
+  round: string;
   kickoff: string;
   homeResult: number | null;
   awayResult: number | null;
@@ -112,7 +113,12 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
     }
   }
 
-  const isLive = locked && match.homeResult === null;
+  // A match realistically lasts ~2-2.5 hours including stoppage/extra time.
+  // Beyond ~3 hours post-kickoff with no result entered yet, showing "Live"
+  // is actively misleading — switch to a neutral "awaiting result" state.
+  const hoursSinceKickoff = (Date.now() - new Date(match.kickoff).getTime()) / 3600000;
+  const isLive = locked && match.homeResult === null && hoursSinceKickoff < 3;
+  const awaitingResult = locked && match.homeResult === null && hoursSinceKickoff >= 3;
   const kickoffLabel = new Date(match.kickoff).toLocaleString("en-GB", {
     timeZone: "Asia/Baghdad",
     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -123,11 +129,15 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   return (
     <div className={`bg-card border border-border rounded-xl p-3.5 mb-2 ${locked && !isLive ? "opacity-60" : ""}`}>
       <div className="flex justify-between items-center mb-2.5">
-        <span className="text-[10px] text-steel">{match.group} · {kickoffLabel}</span>
+        <span className="text-[10px] text-steel">
+          <span className="text-indigo-mid font-medium">{match.competition}</span> · {match.round} · {kickoffLabel}
+        </span>
         {isLive ? (
           <span className="flex items-center gap-1 text-[10px] text-coral-mid font-medium">
             <span className="w-1.5 h-1.5 bg-coral rounded-full live-dot" /> {t("match.live")}
           </span>
+        ) : awaitingResult ? (
+          <span className="text-[10px] text-steel">{t("match.awaitingResult")}</span>
         ) : locked ? (
           <span className="text-[10px] text-steel">{t("match.final")}</span>
         ) : saved ? (
