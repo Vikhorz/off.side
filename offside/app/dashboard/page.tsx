@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,8 @@ import { MatchCard } from "@/components/MatchCard";
 import { Countdown } from "@/components/Countdown";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { useI18n } from "@/lib/i18n";
+import { getIsoWeekKey } from "@/lib/week";
+import { COMPETITIONS } from "@/lib/competitions";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -15,7 +18,13 @@ export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
   const { t } = useI18n();
-  const { data: matches, mutate } = useSWR("/api/matches", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
+  const [competition, setCompetition] = useState<string | null>(null);
+
+  const { data: matches, mutate } = useSWR(
+    `/api/matches${competition ? `?competition=${competition}` : ""}`,
+    fetcher,
+    { refreshInterval: 30000, revalidateOnFocus: false }
+  );
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -37,11 +46,16 @@ export default function DashboardPage() {
   const open = matches.filter((m: any) => new Date() < new Date(m.kickoff));
   const nextMatch = [...open].sort((a: any, b: any) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())[0];
 
-  const boostHolder = matches.find((m: any) => m.userPrediction?.boosted);
-  function boostAvailableFor(matchId: string) {
-    if (!boostHolder) return true;
-    if (boostHolder.id === matchId) return true;
-    const holderLocked = new Date() >= new Date(boostHolder.kickoff);
+  // Boost is one token per calendar week — find the holder within the SAME
+  // week as the match being checked, not globally across the whole season.
+  function boostAvailableFor(match: any) {
+    const weekKey = getIsoWeekKey(new Date(match.kickoff));
+    const holder = matches.find(
+      (m: any) => m.userPrediction?.boosted && getIsoWeekKey(new Date(m.kickoff)) === weekKey
+    );
+    if (!holder) return true;
+    if (holder.id === match.id) return true;
+    const holderLocked = new Date() >= new Date(holder.kickoff);
     return !holderLocked;
   }
 
@@ -58,6 +72,28 @@ export default function DashboardPage() {
           </div>
         )}
 
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 scrollbar-hide">
+          <button
+            onClick={() => setCompetition(null)}
+            className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
+              competition === null ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"
+            }`}
+          >
+            All
+          </button>
+          {COMPETITIONS.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => setCompetition(c.code)}
+              className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
+                competition === c.code ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
         <div className="mb-4">
           <h2 className="font-grotesk text-lg font-medium text-warm">{t("dashboard.title")}</h2>
           <p className="text-xs text-steel mt-0.5">{open.length} {t("dashboard.openCount")}</p>
@@ -66,7 +102,7 @@ export default function DashboardPage() {
           <p className="text-sm text-steel text-center py-8">{t("dashboard.noMatches")}</p>
         )}
         {matches.map((m: any) => (
-          <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m.id)} onSaved={() => mutate()} />
+          <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m)} onSaved={() => mutate()} />
         ))}
 
         <div className="mt-6">
