@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getIsoWeekKey } from "@/lib/week";
 
 export async function GET() {
   const session = await auth();
@@ -30,38 +31,52 @@ export async function POST(req: NextRequest) {
   if (new Date() >= match.kickoff)
     return NextResponse.json({ error: "Prediction window closed" }, { status: 403 });
 
-  // Single reassignable boost token per user (User.boostMatchId), never trusting
-  // the client's `boosted` field directly:
-  //  - if the token is unassigned, or already assigned to THIS match -> allow.
-  //  - if it's assigned to a DIFFERENT match that hasn't kicked off yet -> move it here,
-  //    and clear the boosted flag on that other match's prediction.
-  //  - if it's assigned to a DIFFERENT match that has already kicked off -> permanently
-  //    spent there; reject boosted:true for this match.
+  const weekKey = getIsoWeekKey(match.kickoff);
+
+  // One boost token per user per calendar week (Mon-Sun). Reassignable
+  // between matches within the SAME week; locked in permanently once its
+  // holder match kicks off — same rules as before, just re-scoped per week.
   const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const user = await tx.user.findUnique({ where: { id: session.user.id } });
     let validatedBoosted = false;
 
     if (boosted === true) {
-      if (!user?.boostMatchId || user.boostMatchId === matchId) {
+      const allowance = await tx.weeklyBoost.findUnique({
+        where: { userId_weekKey: { userId: session.user.id, weekKey } },
+      });
+
+      if (!allowance || !allowance.matchId || allowance.matchId === matchId) {
         validatedBoosted = true;
-        await tx.user.update({ where: { id: session.user.id }, data: { boostMatchId: matchId } });
+        await tx.weeklyBoost.upsert({
+          where: { userId_weekKey: { userId: session.user.id, weekKey } },
+          update: { matchId },
+          create: { userId: session.user.id, weekKey, matchId },
+        });
       } else {
-        const holderMatch = await tx.match.findUnique({ where: { id: user.boostMatchId } });
+        const holderMatch = await tx.match.findUnique({ where: { id: allowance.matchId } });
         const holderLocked = holderMatch ? new Date() >= holderMatch.kickoff : false;
         if (!holderLocked) {
-          // reassign: free the old holder's prediction, move token here
           await tx.prediction.updateMany({
-            where: { userId: session.user.id, matchId: user.boostMatchId },
+            where: { userId: session.user.id, matchId: allowance.matchId },
             data: { boosted: false },
           });
-          await tx.user.update({ where: { id: session.user.id }, data: { boostMatchId: matchId } });
+          await tx.weeklyBoost.update({
+            where: { userId_weekKey: { userId: session.user.id, weekKey } },
+            data: { matchId },
+          });
           validatedBoosted = true;
         }
-        // else: boost permanently spent on the locked holder match — stays false here
+        // else: this week's boost already permanently spent on the locked holder match
       }
-    } else if (user?.boostMatchId === matchId) {
-      // explicitly cancelling boost on the match that currently holds it
-      await tx.user.update({ where: { id: session.user.id }, data: { boostMatchId: null } });
+    } else {
+      const allowance = await tx.weeklyBoost.findUnique({
+        where: { userId_weekKey: { userId: session.user.id, weekKey } },
+      });
+      if (allowance?.matchId === matchId) {
+        await tx.weeklyBoost.update({
+          where: { userId_weekKey: { userId: session.user.id, weekKey } },
+          data: { matchId: null },
+        });
+      }
     }
 
     const prediction = await tx.prediction.upsert({
