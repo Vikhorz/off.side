@@ -3,72 +3,98 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculatePoints } from "@/lib/scoring";
 
+// Allow up to 60s (Hobby plan max without Fluid compute) — importing a full
+// season across 6 competitions needs more than the 10s default.
+export const maxDuration = 60;
+
+// The "top 5 leagues + Champions League" — all included in football-data.org's
+// free tier. Add/remove codes here to change coverage.
+const COMPETITIONS = ["PL", "CL", "PD", "SA", "FL1", "BL1"];
+
 type ApiMatch = {
+  id: number;
   homeTeam: { name: string };
   awayTeam: { name: string };
+  utcDate: string;
   status: string;
+  matchday: number | null;
+  stage: string;
   score: { fullTime: { home: number | null; away: number | null } };
 };
 
-// Pulls finished match results from football-data.org's free World Cup feed
-// and fills in Match.homeResult/awayResult for any match we don't have a
-// result for yet. Non-fatal on failure — if the API is unreachable or the
-// key is missing, we just skip syncing and score whatever's already in the DB
-// (which still supports manual entry as a fallback).
-async function syncResultsFromApi() {
-  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-  if (!apiKey) return;
+type ApiMatchWithCompetition = ApiMatch & { competition: string };
 
+function roundLabel(m: ApiMatch): string {
+  if (m.matchday) return `Matchday ${m.matchday}`;
+  return m.stage.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+async function fetchCompetition(code: string, apiKey: string): Promise<ApiMatchWithCompetition[]> {
   try {
-    const res = await fetch("https://api.football-data.org/v4/competitions/WC/matches", {
+    const res = await fetch(`https://api.football-data.org/v4/competitions/${code}/matches`, {
       headers: { "X-Auth-Token": apiKey },
       next: { revalidate: 0 },
     });
-    if (!res.ok) return;
+    if (!res.ok) return [];
     const data = await res.json();
-    const apiMatches: ApiMatch[] = data.matches ?? [];
-
-    const pending = await prisma.match.findMany({ where: { homeResult: null } });
-
-    for (const ourMatch of pending) {
-      const ourHome = ourMatch.homeTeam.toLowerCase().trim();
-      const ourAway = ourMatch.awayTeam.toLowerCase().trim();
-
-      const found = apiMatches.find((m) => {
-        const apiHome = m.homeTeam?.name?.toLowerCase().trim() ?? "";
-        const apiAway = m.awayTeam?.name?.toLowerCase().trim() ?? "";
-        return (
-          (apiHome.includes(ourHome) || ourHome.includes(apiHome)) &&
-          (apiAway.includes(ourAway) || ourAway.includes(apiAway))
-        ) || (
-          (apiHome.includes(ourAway) || ourAway.includes(apiHome)) &&
-          (apiAway.includes(ourHome) || ourHome.includes(apiAway))
-        );
-      });
-
-      if (!found) continue;
-      if (found.status !== "FINISHED" && found.status !== "AWARDED") continue;
-      if (found.score.fullTime.home === null || found.score.fullTime.away === null) continue;
-
-      const apiHome = found.homeTeam.name.toLowerCase().trim();
-      const namesAligned = apiHome.includes(ourHome) || ourHome.includes(apiHome);
-
-      const homeResult = namesAligned ? found.score.fullTime.home : found.score.fullTime.away;
-      const awayResult = namesAligned ? found.score.fullTime.away : found.score.fullTime.home;
-
-      await prisma.match.update({ where: { id: ourMatch.id }, data: { homeResult, awayResult } });
-    }
+    return (data.matches ?? []).map((m: ApiMatch) => ({ ...m, competition: code }));
   } catch {
-    // Silently skip sync on any network/parse error — manual entry still works.
+    return [];
   }
 }
 
-export async function POST(req: NextRequest) {
-  const secret = req.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET)
+// Imports the full season's fixtures (bulk insert, skips ones we already
+// have) and fills results for any match that's finished but doesn't have a
+// score in our DB yet. Non-fatal on failure — falls back to whatever's
+// already there if the API key is missing or a competition fetch fails.
+async function syncFixturesAndResults() {
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
+  if (!apiKey) return;
+
+  const results = await Promise.all(COMPETITIONS.map((code) => fetchCompetition(code, apiKey)));
+  const allMatches = results.flat();
+  if (allMatches.length === 0) return;
+
+  // Bulk insert any fixtures we don't have yet — one fast statement instead
+  // of hundreds of individual upserts.
+  await prisma.match.createMany({
+    data: allMatches.map((m) => ({
+      id: String(m.id),
+      competition: m.competition,
+      homeTeam: m.homeTeam.name,
+      awayTeam: m.awayTeam.name,
+      round: roundLabel(m),
+      kickoff: new Date(m.utcDate),
+      homeResult: m.status === "FINISHED" || m.status === "AWARDED" ? m.score.fullTime.home : null,
+      awayResult: m.status === "FINISHED" || m.status === "AWARDED" ? m.score.fullTime.away : null,
+    })),
+    skipDuplicates: true,
+  });
+
+  // For matches we already had as fixtures, fill in results that have
+  // appeared since the last sync (only touches the small subset that
+  // actually changed, not the whole dataset).
+  const pending = await prisma.match.findMany({ where: { homeResult: null } });
+  const pendingIds = new Set(pending.map((m) => m.id));
+
+  for (const m of allMatches) {
+    if (!pendingIds.has(String(m.id))) continue;
+    if (m.status !== "FINISHED" && m.status !== "AWARDED") continue;
+    if (m.score.fullTime.home === null || m.score.fullTime.away === null) continue;
+
+    await prisma.match.update({
+      where: { id: String(m.id) },
+      data: { homeResult: m.score.fullTime.home, awayResult: m.score.fullTime.away },
+    });
+  }
+}
+
+async function handleCronRequest(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await syncResultsFromApi();
+  await syncFixturesAndResults();
 
   const matches = await prisma.match.findMany({
     where: { homeResult: { not: null }, awayResult: { not: null }, scoredAt: null },
@@ -93,5 +119,16 @@ export async function POST(req: NextRequest) {
     totalScored++;
   }
 
-  return NextResponse.json({ scored: totalScored });
+  return NextResponse.json({ scored: totalScored, competitions: COMPETITIONS });
+}
+
+// Vercel's actual Cron trigger always sends GET, never POST — this was the
+// second bug preventing auto-sync from ever running automatically. POST is
+// kept too so manual curl testing keeps working exactly as before.
+export async function GET(req: NextRequest) {
+  return handleCronRequest(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handleCronRequest(req);
 }
