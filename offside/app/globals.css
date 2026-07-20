@@ -63,12 +63,15 @@ body {
    Its kufic style works well as a display font too, so headings use it as well. */
 [dir="rtl"] body,
 [dir="rtl"] .font-grotesk {
-  font-family: var(--font-arabic), sans-serif;
+  font-family: var(--font-arabic), sans-serif !important;
 }
 
 ::-webkit-scrollbar       { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--navy); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 * { transition-property: background-color, border-color, color, opacity, transform;
     transition-duration: 150ms; transition-timing-function: ease; }
