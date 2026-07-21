@@ -77,7 +77,12 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const locked = new Date() >= new Date(match.kickoff);
   const [home, setHome] = useState<number | "">(match.userPrediction?.homeScore ?? "");
   const [away, setAway] = useState<number | "">(match.userPrediction?.awayScore ?? "");
-  const [boosted, setBoosted] = useState(match.userPrediction?.boosted ?? false);
+  const [boostedInput, setBoostedInput] = useState(match.userPrediction?.boosted ?? false);
+  // Once saved, the boost status is fully owned by the server (it can change
+  // here if another match's save reassigns this week's token) — so we mirror
+  // it live instead of trusting a local copy taken at mount time. Before
+  // saving, the toggle is purely local/editable.
+  const boosted = saved ? (match.userPrediction?.boosted ?? false) : boostedInput;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -94,13 +99,13 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       const res = await fetch("/api/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, homeScore: home, awayScore: away, boosted }),
+        body: JSON.stringify({ matchId: match.id, homeScore: home, awayScore: away, boosted: boostedInput }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Could not save prediction");
       } else {
-        setBoosted(data.boosted ?? false);
+        setBoostedInput(data.boosted ?? false);
         setSaved(true);
         onSaved();
         setShowToast(true);
@@ -174,7 +179,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <label className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] text-steel ${saved ? "opacity-50" : "cursor-pointer"}`}>
             <button
               type="button"
-              onClick={() => !saved && setBoosted((b) => !b)}
+              onClick={() => !saved && setBoostedInput((b) => !b)}
               disabled={saved || (!boostAvailable && !boosted)}
               className={`w-7 h-4 rounded-full flex items-center px-0.5 transition-colors flex-shrink-0 ${
                 boosted ? "bg-indigo justify-end" : "bg-border justify-start"
@@ -187,7 +192,10 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
 
           {saved ? (
             <button
-              onClick={() => setSaved(false)}
+              onClick={() => {
+                setBoostedInput(match.userPrediction?.boosted ?? false);
+                setSaved(false);
+              }}
               className="text-[11px] font-medium px-3 py-1.5 rounded-md border border-border text-steel hover:text-warm hover:border-indigo transition-colors"
             >
               {t("match.edit")}
