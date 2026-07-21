@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   const competition = req.nextUrl.searchParams.get("competition");
   const daysParam = req.nextUrl.searchParams.get("days");
-  const days = daysParam ? Number(daysParam) : 14;
+  const days = daysParam ? Number(daysParam) : 60;
 
   const now = new Date();
   const windowEnd = new Date(now.getTime() + days * 86400000);
