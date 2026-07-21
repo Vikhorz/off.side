@@ -78,15 +78,15 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const [home, setHome] = useState<number | "">(match.userPrediction?.homeScore ?? "");
   const [away, setAway] = useState<number | "">(match.userPrediction?.awayScore ?? "");
   const [boostedInput, setBoostedInput] = useState(match.userPrediction?.boosted ?? false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [saved, setSaved] = useState(!!match.userPrediction);
   // Once saved, the boost status is fully owned by the server (it can change
   // here if another match's save reassigns this week's token) — so we mirror
   // it live instead of trusting a local copy taken at mount time. Before
   // saving, the toggle is purely local/editable.
   const boosted = saved ? (match.userPrediction?.boosted ?? false) : boostedInput;
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [saved, setSaved] = useState(!!match.userPrediction);
 
   async function save() {
     if (home === "" || away === "") {
