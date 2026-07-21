@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [competition, setCompetition] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const { data: matches, mutate } = useSWR(
     `/api/matches${competition ? `?competition=${competition}` : ""}`,
@@ -101,9 +102,22 @@ export default function DashboardPage() {
         {matches.length === 0 && (
           <p className="text-sm text-steel text-center py-8">{t("dashboard.noMatches")}</p>
         )}
-        {matches.map((m: any) => (
-          <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m)} onSaved={() => mutate()} />
-        ))}
+        <div className="relative">
+          {(showAll ? matches : matches.slice(0, 7)).map((m: any) => (
+            <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m)} onSaved={() => mutate()} />
+          ))}
+          {!showAll && matches.length > 7 && (
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-navy to-transparent pointer-events-none" />
+          )}
+        </div>
+        {!showAll && matches.length > 7 && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="w-full text-sm text-indigo-mid py-2 -mt-4 relative"
+          >
+            {t("dashboard.showMore")}
+          </button>
+        )}
 
         <div className="mt-6">
           <ActivityFeed />
