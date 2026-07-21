@@ -3,9 +3,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculatePoints } from "@/lib/scoring";
 
-// Allow up to 60s (Hobby plan max without Fluid compute) — importing a full
+// Hobby plan allows up to 300s with Fluid compute enabled — importing a full
 // season across 6 competitions needs more than the 10s default.
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // The "top 5 leagues + Champions League" — all included in football-data.org's
 // free tier. Add/remove codes here to change coverage.
@@ -34,6 +34,7 @@ async function fetchCompetition(code: string, apiKey: string): Promise<ApiMatchW
     const res = await fetch(`https://api.football-data.org/v4/competitions/${code}/matches`, {
       headers: { "X-Auth-Token": apiKey },
       next: { revalidate: 0 },
+      signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) return [];
     const data = await res.json();
