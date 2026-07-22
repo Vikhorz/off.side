@@ -90,6 +90,41 @@ async function syncFixturesAndResults() {
   }
 }
 
+// Once every match we have for a competition is finished (no more pending
+// results), that competition's season is treated as complete: snapshot each
+// participating user's total points for it into SeasonArchive. Safe to call
+// every cron run — the unique constraint means it's a no-op once archived.
+async function archiveCompletedSeasons() {
+  for (const code of COMPETITIONS) {
+    const matches = await prisma.match.findMany({ where: { competition: code } });
+    if (matches.length === 0) continue;
+
+    const stillPending = matches.some((m) => m.homeResult === null);
+    if (stillPending) continue;
+
+    const latestKickoff = matches.reduce(
+      (max, m) => (m.kickoff > max ? m.kickoff : max),
+      matches[0].kickoff
+    );
+    const seasonLabel = latestKickoff.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+    const predictions = await prisma.prediction.findMany({ where: { match: { competition: code } } });
+    const pointsByUser = new Map<string, number>();
+    for (const p of predictions) {
+      pointsByUser.set(p.userId, (pointsByUser.get(p.userId) ?? 0) + (p.pointsAwarded ?? 0));
+    }
+
+    for (const [userId, points] of pointsByUser) {
+      const existing = await prisma.seasonArchive.findUnique({
+        where: { userId_competition_seasonLabel: { userId, competition: code, seasonLabel } },
+      });
+      if (existing) continue;
+
+      await prisma.seasonArchive.create({ data: { userId, competition: code, seasonLabel, points } });
+    }
+  }
+}
+
 async function handleCronRequest(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`)
@@ -120,9 +155,10 @@ async function handleCronRequest(req: NextRequest) {
     totalScored++;
   }
 
-  return NextResponse.json({ scored: totalScored, competitions: COMPETITIONS });
-}
+  await archiveCompletedSeasons();
 
+  return NextResponse.json({ scored: totalScored, competitions: COMPETITIONS });
+  
 // Vercel's actual Cron trigger always sends GET, never POST — this was the
 // second bug preventing auto-sync from ever running automatically. POST is
 // kept too so manual curl testing keeps working exactly as before.
