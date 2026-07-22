@@ -13,6 +13,7 @@ function useLinks() {
     { href: "/leaderboard", label: t("nav.leaderboard"), icon: "trophy" },
     { href: "/stats", label: t("nav.stats"), icon: "chart" },
     { href: "/news", label: t("nav.news"), icon: "news" },
+    { href: "/history", label: t("nav.history"), icon: "history" },
   ];
 }
 
@@ -25,8 +26,10 @@ function NavIcon({ name }: { name: string }) {
       return <svg {...common}><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 01-10 0V4zM7 6H4a3 3 0 003 3M17 6h3a3 3 0 01-3 3" /></svg>;
     case "chart":
       return <svg {...common}><path d="M4 20V10M12 20V4M20 20v-7" /></svg>;
-    case "news":
+     case "news":
       return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 8h10M7 12h10M7 16h6" /></svg>;
+    case "history":
+      return <svg {...common}><path d="M3 12a9 9 0 109-9 9 9 0 00-6.36 2.64L3 8" /><path d="M3 3v5h5M12 7v5l4 2" /></svg>;
     default:
       return null;
   }
