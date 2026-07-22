@@ -16,6 +16,7 @@ model User {
   createdAt    DateTime @default(now())
   predictions  Prediction[]
   weeklyBoosts WeeklyBoost[]
+  seasonArchives SeasonArchive[]
 }
 
 model Match {
@@ -55,6 +56,7 @@ model Prediction {
 // "2026-W12"). Reassignable between matches within that same week; locked in
 // permanently once its holder match kicks off, same reassignment rules as
 // before, just re-scoped to a week instead of the whole tournament.
+
 model WeeklyBoost {
   id      String  @id @default(cuid())
   userId  String
@@ -62,4 +64,21 @@ model WeeklyBoost {
   matchId String?
   user    User    @relation(fields: [userId], references: [id])
   @@unique([userId, weekKey])
+}
+
+// A permanent snapshot of a user's points for one competition, taken once
+// that competition's season is fully finished (every match we have for it
+// is scored). Never overwritten after creation — this is the "view later"
+// record; the live leaderboard keeps accumulating across all competitions
+// as normal.
+model SeasonArchive {
+  id          String   @id @default(cuid())
+  userId      String
+  competition String
+  // e.g. "May 2027" — derived from the final match's kickoff date.
+  seasonLabel String
+  points      Int
+  archivedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  @@unique([userId, competition, seasonLabel])
 }
