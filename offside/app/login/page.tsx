@@ -3,6 +3,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
@@ -24,7 +25,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <div className="absolute top-4 end-4">
+        <LanguageToggle />
+      </div>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="font-grotesk text-3xl font-bold text-warm">
