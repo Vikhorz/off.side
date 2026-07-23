@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import { spaceGrotesk, inter, jetbrainsMono, notoKufiArabic } from "@/lib/fonts";
 
 export const metadata: Metadata = {
-  title: "Off.side — World Cup 2026 Predictions",
+  title: "Off.side — Football Predictions League",
   description: "The tamper-proof prediction league for your group.",
 };
 
