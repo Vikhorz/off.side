@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Countdown } from "./Countdown";
+import { LanguageToggle } from "./LanguageToggle";
 import { useI18n } from "@/lib/i18n";
 
 export function LandingContent({ nextMatch }: {
@@ -9,7 +10,10 @@ export function LandingContent({ nextMatch }: {
   const { t } = useI18n();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative">
+      <div className="absolute top-4 end-4">
+        <LanguageToggle />
+      </div>
       <div className="w-full max-w-sm text-center">
         <h1 className="font-grotesk text-5xl font-bold text-warm tracking-tight">
           Off<span className="text-indigo">.</span>side
