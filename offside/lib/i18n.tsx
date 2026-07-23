@@ -46,7 +46,7 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "badges.fullhouse": "Full House", "badges.fullhouseDesc": "Every single prediction scored so far is correct",
     "news.title": "Football news", "news.subtitle": "Latest from BBC Sport", "news.empty": "No news available right now.",
     "activity.title": "Group activity", "activity.empty": "No predictions yet — be the first.",
-    "activity.predicted": "predicted", "activity.boosted": "boosted",
+    "activity.predicted": "predicted", "activity.boosted": "boosted", "history.title": "Season history", "history.subtitle": "Your points from completed competitions", "history.empty": "No completed seasons yet.", "history.points": "points",
   },
   ar: {
     "nav.predict": "التوقعات", "nav.leaderboard": "الترتيب", "nav.stats": "إحصائياتي", "nav.news": "الأخبار", "nav.history": "الأرشيف",
