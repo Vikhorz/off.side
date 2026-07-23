@@ -155,10 +155,11 @@ async function handleCronRequest(req: NextRequest) {
     totalScored++;
   }
 
-  await archiveCompletedSeasons();
+await archiveCompletedSeasons();
 
   return NextResponse.json({ scored: totalScored, competitions: COMPETITIONS });
-  
+}
+
 // Vercel's actual Cron trigger always sends GET, never POST — this was the
 // second bug preventing auto-sync from ever running automatically. POST is
 // kept too so manual curl testing keeps working exactly as before.
