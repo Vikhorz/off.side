@@ -53,13 +53,13 @@ async function fetchCompetition(code: string, apiKey: string): Promise<FetchResu
 // already there if the API key is missing or a competition fetch fails.
 async function syncFixturesAndResults() {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-  if (!apiKey) return { hasApiKey: false, perCompetition: [] as FetchResult[], matchesFound: 0, resultsUpdated: 0 };
+  if (!apiKey) return { hasApiKey: false, perCompetition: [] as FetchResult[], matchesFound: 0, resultsUpdated: 0, rescheduled: 0 };
 
   const results = await Promise.all(COMPETITIONS.map((code) => fetchCompetition(code, apiKey)));
   const allMatches = results.flatMap((r) => r.matches);
   const diagnostics = results.map((r) => ({ code: r.code, fetched: r.matches.length, status: r.status, error: r.error }));
 
-  if (allMatches.length === 0) return { hasApiKey: true, perCompetition: diagnostics, matchesFound: 0, resultsUpdated: 0 };
+  if (allMatches.length === 0) return { hasApiKey: true, perCompetition: diagnostics, matchesFound: 0, resultsUpdated: 0, rescheduled: 0 };
 
   // Bulk insert any fixtures we don't have yet — one fast statement instead
   // of hundreds of individual upserts.
@@ -77,26 +77,43 @@ async function syncFixturesAndResults() {
     skipDuplicates: true,
   });
 
-  // For matches we already had as fixtures, fill in results that have
-  // appeared since the last sync (only touches the small subset that
-  // actually changed, not the whole dataset).
+  // Only matches without a result yet can need either (a) a result filled in
+  // or (b) a kickoff/round correction — finished matches need neither, so we
+  // don't touch the rest of the dataset (which could be thousands of rows).
   const pending = await prisma.match.findMany({ where: { homeResult: null } });
-  const pendingIds = new Set(pending.map((m) => m.id));
+  const pendingMap = new Map(pending.map((m) => [m.id, m]));
 
   let resultsUpdated = 0;
+  let rescheduled = 0;
   for (const m of allMatches) {
-    if (!pendingIds.has(String(m.id))) continue;
-    if (m.status !== "FINISHED" && m.status !== "AWARDED") continue;
-    if (m.score.fullTime.home === null || m.score.fullTime.away === null) continue;
+    const stored = pendingMap.get(String(m.id));
+    if (!stored) continue;
 
-    await prisma.match.update({
-      where: { id: String(m.id) },
-      data: { homeResult: m.score.fullTime.home, awayResult: m.score.fullTime.away },
-    });
-    resultsUpdated++;
+    const isFinished = m.status === "FINISHED" || m.status === "AWARDED";
+
+    if (isFinished && m.score.fullTime.home !== null && m.score.fullTime.away !== null) {
+      await prisma.match.update({
+        where: { id: String(m.id) },
+        data: { homeResult: m.score.fullTime.home, awayResult: m.score.fullTime.away },
+      });
+      resultsUpdated++;
+      continue;
+    }
+
+    // Not finished yet — check whether the league moved its kickoff time
+    // since we last synced it.
+    const apiKickoff = new Date(m.utcDate);
+    const newRound = roundLabel(m);
+    if (apiKickoff.getTime() !== stored.kickoff.getTime() || newRound !== stored.round) {
+      await prisma.match.update({
+        where: { id: String(m.id) },
+        data: { kickoff: apiKickoff, round: newRound },
+      });
+      rescheduled++;
+    }
   }
 
-  return { hasApiKey: true, perCompetition: diagnostics, matchesFound: allMatches.length, resultsUpdated };
+  return { hasApiKey: true, perCompetition: diagnostics, matchesFound: allMatches.length, resultsUpdated, rescheduled };
 }
 
 // Once every match we have for a competition is finished (no more pending
