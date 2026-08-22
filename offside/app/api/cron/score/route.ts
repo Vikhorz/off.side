@@ -77,15 +77,22 @@ async function syncFixturesAndResults() {
     skipDuplicates: true,
   });
 
-  // Only matches without a result yet can need either (a) a result filled in
-  // or (b) a kickoff/round correction — finished matches need neither, so we
-  // don't touch the rest of the dataset (which could be thousands of rows).
+  // Cap total writes per invocation. With a freshly-imported season, most of
+  // ~2000 matches are still unplayed, and if a meaningful chunk have drifted
+  // kickoff times, doing them all as sequential DB round-trips can blow past
+  // the function time limit. Processing a bounded batch per run and catching
+  // the rest on the next scheduled run (every 15 min via cron-job.org) keeps
+  // every single invocation fast and reliable instead of risking a timeout.
+  const MAX_WRITES_PER_RUN = 150;
+
   const pending = await prisma.match.findMany({ where: { homeResult: null } });
   const pendingMap = new Map(pending.map((m) => [m.id, m]));
 
   let resultsUpdated = 0;
   let rescheduled = 0;
   for (const m of allMatches) {
+    if (resultsUpdated + rescheduled >= MAX_WRITES_PER_RUN) break;
+
     const stored = pendingMap.get(String(m.id));
     if (!stored) continue;
 
