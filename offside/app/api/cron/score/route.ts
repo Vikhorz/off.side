@@ -29,18 +29,21 @@ function roundLabel(m: ApiMatch): string {
   return m.stage.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-async function fetchCompetition(code: string, apiKey: string): Promise<ApiMatchWithCompetition[]> {
+type FetchResult = { code: string; matches: ApiMatchWithCompetition[]; status: number | null; error: string | null };
+
+async function fetchCompetition(code: string, apiKey: string): Promise<FetchResult> {
   try {
     const res = await fetch(`https://api.football-data.org/v4/competitions/${code}/matches`, {
       headers: { "X-Auth-Token": apiKey },
       next: { revalidate: 0 },
       signal: AbortSignal.timeout(20000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { code, matches: [], status: res.status, error: await res.text() };
     const data = await res.json();
-    return (data.matches ?? []).map((m: ApiMatch) => ({ ...m, competition: code }));
-  } catch {
-    return [];
+    const matches = (data.matches ?? []).map((m: ApiMatch) => ({ ...m, competition: code }));
+    return { code, matches, status: res.status, error: null };
+  } catch (e) {
+    return { code, matches: [], status: null, error: e instanceof Error ? e.message : "unknown error" };
   }
 }
 
@@ -50,11 +53,13 @@ async function fetchCompetition(code: string, apiKey: string): Promise<ApiMatchW
 // already there if the API key is missing or a competition fetch fails.
 async function syncFixturesAndResults() {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-  if (!apiKey) return;
+  if (!apiKey) return { hasApiKey: false, perCompetition: [] as FetchResult[], matchesFound: 0, resultsUpdated: 0 };
 
   const results = await Promise.all(COMPETITIONS.map((code) => fetchCompetition(code, apiKey)));
-  const allMatches = results.flat();
-  if (allMatches.length === 0) return;
+  const allMatches = results.flatMap((r) => r.matches);
+  const diagnostics = results.map((r) => ({ code: r.code, fetched: r.matches.length, status: r.status, error: r.error }));
+
+  if (allMatches.length === 0) return { hasApiKey: true, perCompetition: diagnostics, matchesFound: 0, resultsUpdated: 0 };
 
   // Bulk insert any fixtures we don't have yet — one fast statement instead
   // of hundreds of individual upserts.
@@ -78,6 +83,7 @@ async function syncFixturesAndResults() {
   const pending = await prisma.match.findMany({ where: { homeResult: null } });
   const pendingIds = new Set(pending.map((m) => m.id));
 
+  let resultsUpdated = 0;
   for (const m of allMatches) {
     if (!pendingIds.has(String(m.id))) continue;
     if (m.status !== "FINISHED" && m.status !== "AWARDED") continue;
@@ -87,7 +93,10 @@ async function syncFixturesAndResults() {
       where: { id: String(m.id) },
       data: { homeResult: m.score.fullTime.home, awayResult: m.score.fullTime.away },
     });
+    resultsUpdated++;
   }
+
+  return { hasApiKey: true, perCompetition: diagnostics, matchesFound: allMatches.length, resultsUpdated };
 }
 
 // Once every match we have for a competition is finished (no more pending
@@ -130,7 +139,7 @@ async function handleCronRequest(req: NextRequest) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await syncFixturesAndResults();
+  const syncInfo = await syncFixturesAndResults();
 
   const matches = await prisma.match.findMany({
     where: { homeResult: { not: null }, awayResult: { not: null }, scoredAt: null },
@@ -157,7 +166,7 @@ async function handleCronRequest(req: NextRequest) {
 
 await archiveCompletedSeasons();
 
-  return NextResponse.json({ scored: totalScored, competitions: COMPETITIONS });
+  return NextResponse.json({ scored: totalScored, competitions: COMPETITIONS, sync: syncInfo });
 }
 
 // Vercel's actual Cron trigger always sends GET, never POST — this was the
