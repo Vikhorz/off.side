@@ -77,23 +77,22 @@ async function syncFixturesAndResults() {
     skipDuplicates: true,
   });
 
-  // Cap total writes per invocation and run them concurrently rather than
-  // one-by-one. With a freshly-imported season, most of ~2000 matches are
-  // still unplayed, and sequential DB round-trips (especially over the
-  // constrained pgbouncer connection) can easily blow past a 30s timeout.
-  // Running a bounded batch concurrently and catching the rest on the next
-  // scheduled run (every 15 min via cron-job.org) keeps each invocation fast.
+  // Cap total writes per invocation, executed sequentially. With a freshly-
+  // imported season, most of ~2000 matches are still unplayed, so this stays
+  // bounded rather than risking a timeout on one giant run — the rest is
+  // picked up on the next scheduled run (every 15 min via cron-job.org).
+  // NOTE: writes must stay sequential, not concurrent — DATABASE_URL uses
+  // connection_limit=1 for Supabase's transaction pooler, so firing many
+  // writes at once exhausts the pool and throws instead of speeding anything up.
   const MAX_WRITES_PER_RUN = 50;
 
   const pending = await prisma.match.findMany({ where: { homeResult: null } });
   const pendingMap = new Map(pending.map((m) => [m.id, m]));
 
-  type Write = { type: "result"; id: string; homeResult: number; awayResult: number }
-    | { type: "reschedule"; id: string; kickoff: Date; round: string };
-
-  const writes: Write[] = [];
+  let resultsUpdated = 0;
+  let rescheduled = 0;
   for (const m of allMatches) {
-    if (writes.length >= MAX_WRITES_PER_RUN) break;
+    if (resultsUpdated + rescheduled >= MAX_WRITES_PER_RUN) break;
 
     const stored = pendingMap.get(String(m.id));
     if (!stored) continue;
@@ -101,7 +100,11 @@ async function syncFixturesAndResults() {
     const isFinished = m.status === "FINISHED" || m.status === "AWARDED";
 
     if (isFinished && m.score.fullTime.home !== null && m.score.fullTime.away !== null) {
-      writes.push({ type: "result", id: String(m.id), homeResult: m.score.fullTime.home, awayResult: m.score.fullTime.away });
+      await prisma.match.update({
+        where: { id: String(m.id) },
+        data: { homeResult: m.score.fullTime.home, awayResult: m.score.fullTime.away },
+      });
+      resultsUpdated++;
       continue;
     }
 
@@ -110,20 +113,13 @@ async function syncFixturesAndResults() {
     const apiKickoff = new Date(m.utcDate);
     const newRound = roundLabel(m);
     if (apiKickoff.getTime() !== stored.kickoff.getTime() || newRound !== stored.round) {
-      writes.push({ type: "reschedule", id: String(m.id), kickoff: apiKickoff, round: newRound });
+      await prisma.match.update({
+        where: { id: String(m.id) },
+        data: { kickoff: apiKickoff, round: newRound },
+      });
+      rescheduled++;
     }
   }
-
-  await Promise.all(
-    writes.map((w) =>
-      w.type === "result"
-        ? prisma.match.update({ where: { id: w.id }, data: { homeResult: w.homeResult, awayResult: w.awayResult } })
-        : prisma.match.update({ where: { id: w.id }, data: { kickoff: w.kickoff, round: w.round } })
-    )
-  );
-
-  const resultsUpdated = writes.filter((w) => w.type === "result").length;
-  const rescheduled = writes.filter((w) => w.type === "reschedule").length;
 
   return { hasApiKey: true, perCompetition: diagnostics, matchesFound: allMatches.length, resultsUpdated, rescheduled };
 }
