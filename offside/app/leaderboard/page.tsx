@@ -2,6 +2,7 @@
 import useSWR from "swr";
 import { Navbar } from "@/components/Navbar";
 import { useI18n } from "@/lib/i18n";
+import { useSession } from "next-auth/react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -14,6 +15,8 @@ const medalStyles: Record<number, { bg: string; ring: string; label: string }> =
 export default function LeaderboardPage() {
   const { t } = useI18n();
   const { data } = useSWR("/api/leaderboard", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   const top3 = data?.slice(0, 3) ?? [];
   const rest = data?.slice(3) ?? [];
@@ -23,6 +26,19 @@ export default function LeaderboardPage() {
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
         <h2 className="font-grotesk text-lg font-medium text-warm mb-4">{t("leaderboard.title")}</h2>
+
+        {!isAuthenticated && (
+          <div className="mb-6 p-4 bg-indigo/5 rounded-xl border border-indigo/20">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center bg-indigo text-white text-xs font-medium rounded-full">
+                🔒
+              </div>
+              <div className="text-sm font-medium text-warm">
+                {t("leaderboard.loginToSee")}
+              </div>
+            </div>
+          </div>
+        )}
 
         {!data && (
           <div className="space-y-2">
@@ -45,9 +61,11 @@ export default function LeaderboardPage() {
                 <div key={row.username} className={`rounded-xl p-3 text-center border border-border ${style.bg} ${style.ring} rank-enter`}>
                   <div className="text-xl mb-1">{style.label}</div>
                   <div className="w-9 h-9 rounded-full bg-indigo-bg flex items-center justify-center text-[11px] font-medium text-indigo-mid mx-auto mb-1.5">
-                    {row.username.slice(0, 2).toUpperCase()}
+                    {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
                   </div>
-                  <div className="text-xs font-medium text-warm truncate">{row.username}</div>
+                  <div className="text-xs font-medium text-warm truncate">
+                    {isAuthenticated ? row.username : t("leaderboard.anonymous")}
+                  </div>
                   <div className="font-mono text-sm font-medium text-indigo-mid mt-0.5">{row.totalPoints}</div>
                 </div>
               );
@@ -61,9 +79,11 @@ export default function LeaderboardPage() {
               <div key={row.username} className="flex items-center gap-3 px-4 py-3 rank-enter">
                 <span className="font-mono text-xs w-5 text-center text-steel">{row.rank}</span>
                 <div className="w-7 h-7 rounded-full bg-indigo-bg flex items-center justify-center text-[10px] font-medium text-indigo-mid flex-shrink-0">
-                  {row.username.slice(0, 2).toUpperCase()}
+                  {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
                 </div>
-                <span className="text-sm font-medium text-warm flex-1">{row.username}</span>
+                <span className="text-sm font-medium text-warm flex-1">
+                  {isAuthenticated ? row.username : t("leaderboard.anonymous")}
+                </span>
                 <span className="text-[11px] text-steel">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
                 <span className="font-mono text-sm font-medium text-indigo-mid">{row.totalPoints} pts</span>
               </div>
