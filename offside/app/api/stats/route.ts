@@ -21,7 +21,7 @@ export async function GET() {
   const avg = allUsers.length
     ? Math.round(allUsers.reduce((a: number, u: { totalPoints: number }) => a + u.totalPoints, 0) / allUsers.length)
     : 0;
-  const me = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { totalPoints: true } });
 
   return NextResponse.json({
     totalPoints: me?.totalPoints ?? 0,

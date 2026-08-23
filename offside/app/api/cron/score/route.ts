@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { calculatePoints } from "@/lib/scoring";
 
@@ -159,9 +160,17 @@ async function archiveCompletedSeasons() {
   }
 }
 
+function timingSafeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 async function handleCronRequest(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`)
+  const authHeader = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${process.env.CRON_SECRET}`;
+  if (!timingSafeCompare(authHeader, expected))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const syncInfo = await syncFixturesAndResults();
