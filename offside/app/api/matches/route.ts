@@ -6,19 +6,23 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   const competition = req.nextUrl.searchParams.get("competition");
   const daysParam = req.nextUrl.searchParams.get("days");
+  const pageParam = req.nextUrl.searchParams.get("page");
   const days = daysParam ? Number(daysParam) : 60;
+  const page = pageParam ? Number(pageParam) : 0;
+  const pageSize = 7; // 7 days per page
 
   const now = new Date();
-  const windowEnd = new Date(now.getTime() + days * 86400000);
+  const windowStart = new Date(now.getTime() + page * pageSize * 86400000);
+  const windowEnd = new Date(now.getTime() + (page + 1) * pageSize * 86400000);
 
   const matches = await prisma.match.findMany({
     where: {
       ...(competition ? { competition } : {}),
-      // Show the upcoming window plus anything still awaiting a result,
+      // Show matches in the current page window plus anything still awaiting a result,
       // so a match doesn't just disappear the moment it's out of range.
       OR: [
-        { kickoff: { gte: now, lte: windowEnd } },
-        { AND: [{ kickoff: { lt: now } }, { homeResult: null }] },
+        { kickoff: { gte: windowStart, lte: windowEnd } },
+        { AND: [{ kickoff: { lt: windowStart } }, { homeResult: null }] },
       ],
     },
     orderBy: { kickoff: "asc" },
