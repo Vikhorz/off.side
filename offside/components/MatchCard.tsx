@@ -190,7 +190,8 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
             alt={`${match.homeTeam} logo`}
             className="w-5 h-5"
             onError={(e) => {
-              e.target.src = getClubLogo(match.homeTeam);
+              const imgElement = e.target as HTMLImageElement;
+              imgElement.src = getClubLogo(match.homeTeam);
             }}
           />
           <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
@@ -207,7 +208,8 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
             alt={`${match.awayTeam} logo`}
             className="w-5 h-5"
             onError={(e) => {
-              e.target.src = getClubLogo(match.awayTeam);
+              const imgElement = e.target as HTMLImageElement;
+              imgElement.src = getClubLogo(match.awayTeam);
             }}
           />
         </div>
