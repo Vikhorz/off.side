@@ -190,12 +190,12 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         )}
       </div>
 
-      <div className={`flex items-center gap-1 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <div className="flex items-center gap-1">
+      <div className={`flex items-center gap-3 ${inputsDisabled ? "opacity-60" : ""}`}>
+        <div className="flex-1 flex items-center gap-2">
           <img
             src={homeLogo}
             alt={`${match.homeTeam} logo`}
-            className="w-4 h-4"
+            className="w-5 h-5"
             onError={(e) => {
               const imgElement = e.target as HTMLImageElement;
               const fallbackSrc = getClubLogo(match.homeTeam);
@@ -204,19 +204,19 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
               }
             }}
           />
-          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[80px]">{match.homeTeam}</span>
         </div>
-        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1 py-1 flex-shrink-0">
+        <div className="flex-shrink-0 flex items-center gap-2 bg-navy border border-border rounded-md px-2 py-1">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <div className="flex items-center gap-1">
-          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
+        <div className="flex-1 flex items-center gap-2 justify-end">
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[80px] text-end">{match.awayTeam}</span>
           <img
             src={awayLogo}
             alt={`${match.awayTeam} logo`}
-            className="w-4 h-4"
+            className="w-5 h-5"
             onError={(e) => {
               const imgElement = e.target as HTMLImageElement;
               const fallbackSrc = getClubLogo(match.awayTeam);
