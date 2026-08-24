@@ -83,8 +83,9 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [saved, setSaved] = useState(!!match.userPrediction);
-  const [homeLogo, setHomeLogo] = useState<string>("");
-  const [awayLogo, setAwayLogo] = useState<string>("");
+  // Initialize with synchronous logo to avoid flicker
+  const [homeLogo, setHomeLogo] = useState<string>(getClubLogo(match.homeTeam));
+  const [awayLogo, setAwayLogo] = useState<string>(getClubLogo(match.awayTeam));
   const [logoLoading, setLogoLoading] = useState<boolean>(true);
   // Once saved, the boost status is fully owned by the server (it can change
   // here if another match's save reassigns this week's token) — so we mirror
@@ -101,11 +102,17 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           getClubLogoAsync(match.homeTeam),
           getClubLogoAsync(match.awayTeam)
         ]);
-        setHomeLogo(homeLogoUrl);
-        setAwayLogo(awayLogoUrl);
+        // Only set state if the URL is different to avoid unnecessary renders and flicker
+        if (homeLogoUrl !== homeLogo) {
+          setHomeLogo(homeLogoUrl);
+        }
+        if (awayLogoUrl !== awayLogo) {
+          setAwayLogo(awayLogoUrl);
+        }
       } catch (error) {
         console.error("Error fetching logos:", error);
-        // Fallbacks will be handled by getClubLogoAsync
+        // Fallbacks will be handled by getClubLogo (already in state)
+        // Ensure we have the fallback set (should already be there from initialization)
         setHomeLogo(getClubLogo(match.homeTeam));
         setAwayLogo(getClubLogo(match.awayTeam));
       } finally {
@@ -183,31 +190,39 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         )}
       </div>
 
-      <div className={`flex items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <div className="flex items-center gap-2">
+      <div className={`flex items-center gap-3 ${inputsDisabled ? "opacity-60" : ""}`}>
+        <div className="flex-1 flex items-center gap-2">
           <img
-            src={homeLogo || getClubLogo(match.homeTeam)}
+            src={homeLogo}
             alt={`${match.homeTeam} logo`}
             className="w-5 h-5"
             onError={(e) => {
-              e.target.src = getClubLogo(match.homeTeam);
+              const imgElement = e.target as HTMLImageElement;
+              const fallbackSrc = getClubLogo(match.homeTeam);
+              if (imgElement.src !== fallbackSrc) {
+                imgElement.src = fallbackSrc;
+              }
             }}
           />
-          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[80px]">{match.homeTeam}</span>
         </div>
-        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1 py-1 flex-shrink-0">
+        <div className="flex-shrink-0 flex items-center gap-2 bg-navy border border-border rounded-md px-2 py-1">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
+        <div className="flex-1 flex items-center gap-2 justify-end">
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[80px] text-end">{match.awayTeam}</span>
           <img
-            src={awayLogo || getClubLogo(match.awayTeam)}
+            src={awayLogo}
             alt={`${match.awayTeam} logo`}
             className="w-5 h-5"
             onError={(e) => {
-              e.target.src = getClubLogo(match.awayTeam);
+              const imgElement = e.target as HTMLImageElement;
+              const fallbackSrc = getClubLogo(match.awayTeam);
+              if (imgElement.src !== fallbackSrc) {
+                imgElement.src = fallbackSrc;
+              }
             }}
           />
         </div>
