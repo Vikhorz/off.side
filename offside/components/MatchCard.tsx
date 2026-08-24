@@ -83,10 +83,12 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [saved, setSaved] = useState(!!match.userPrediction);
+
   // Initialize with synchronous logo to avoid flicker
   const [homeLogo, setHomeLogo] = useState<string>(getClubLogo(match.homeTeam));
   const [awayLogo, setAwayLogo] = useState<string>(getClubLogo(match.awayTeam));
   const [logoLoading, setLogoLoading] = useState<boolean>(true);
+
   // Once saved, the boost status is fully owned by the server (it can change
   // here if another match's save reassigns this week's token) — so we mirror
   // it live instead of trusting a local copy taken at mount time. Before
@@ -190,41 +192,45 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         )}
       </div>
 
-      <div className={`flex items-center gap-3 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <div className="flex-1 flex items-center gap-2">
-          <img
-            src={homeLogo}
-            alt={`${match.homeTeam} logo`}
-            className="w-5 h-5"
-            onError={(e) => {
-              const imgElement = e.target as HTMLImageElement;
-              const fallbackSrc = getClubLogo(match.homeTeam);
-              if (imgElement.src !== fallbackSrc) {
-                imgElement.src = fallbackSrc;
-              }
-            }}
-          />
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[80px]">{match.homeTeam}</span>
+      <div className={`flex items-center gap-4 ${inputsDisabled ? "opacity-60" : ""}`}>
+        <div className="flex items-center gap-3">
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <img
+              src={homeLogo}
+              alt={`${match.homeTeam} logo`}
+              className="absolute inset-0 w-full h-full object-contain"
+              onError={(e) => {
+                const imgElement = e.target as HTMLImageElement;
+                const fallbackSrc = getClubLogo(match.homeTeam);
+                if (imgElement.src !== fallbackSrc) {
+                  imgElement.src = fallbackSrc;
+                }
+              }}
+            />
+          </div>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px]">{match.homeTeam}</span>
         </div>
-        <div className="flex-shrink-0 flex items-center gap-2 bg-navy border border-border rounded-md px-2 py-1">
+        <div className="flex-shrink-0 flex items-center gap-3 bg-navy border border-border rounded-md px-3 py-1.5">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <div className="flex-1 flex items-center gap-2 justify-end">
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[80px] text-end">{match.awayTeam}</span>
-          <img
-            src={awayLogo}
-            alt={`${match.awayTeam} logo`}
-            className="w-5 h-5"
-            onError={(e) => {
-              const imgElement = e.target as HTMLImageElement;
-              const fallbackSrc = getClubLogo(match.awayTeam);
-              if (imgElement.src !== fallbackSrc) {
-                imgElement.src = fallbackSrc;
-              }
-            }}
-          />
+        <div className="flex items-center gap-3">
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] text-end">{match.awayTeam}</span>
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <img
+              src={awayLogo}
+              alt={`${match.awayTeam} logo`}
+              className="absolute inset-0 w-full h-full object-contain"
+              onError={(e) => {
+                const imgElement = e.target as HTMLImageElement;
+                const fallbackSrc = getClubLogo(match.awayTeam);
+                if (imgElement.src !== fallbackSrc) {
+                  imgElement.src = fallbackSrc;
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -239,7 +245,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
 
       {!locked && (
         <div className="flex flex-wrap justify-between items-center gap-y-2 mt-2.5">
-          <label className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] text-steel ${saved ? "opacity-50" : "cursor-pointer"}`}>
+          <label className={`flex items-center gap-2 text-[10px] sm:text-[11px] text-steel ${saved ? "opacity-50" : "cursor-pointer"}`}>
             <button
               type="button"
               onClick={() => !saved && setBoostedInput((b) => !b)}

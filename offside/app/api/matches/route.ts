@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const daysParam = req.nextUrl.searchParams.get("days");
   const pageParam = req.nextUrl.searchParams.get("page");
   const days = daysParam ? Number(daysParam) : 60;
-  const page = pageParam ? Number(pageParam) : 0;
+  const page = pageParam ? Math.max(0, Number(pageParam)) : 0; // Ensure page is not negative
   const pageSize = 7; // 7-days per page
 
   const now = new Date();
