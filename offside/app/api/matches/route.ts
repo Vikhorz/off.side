@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const pageParam = req.nextUrl.searchParams.get("page");
   const days = daysParam ? Number(daysParam) : 60;
   const page = pageParam ? Number(pageParam) : 0;
-  const pageSize = 7; // 7 days per page
+  const pageSize = 7; // 7-days per page
 
   const now = new Date();
   const windowStart = new Date(now.getTime() + page * pageSize * 86400000);
