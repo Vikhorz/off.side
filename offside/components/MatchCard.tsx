@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
+import { getClubLogo, getClubLogoAsync } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -82,11 +83,38 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [saved, setSaved] = useState(!!match.userPrediction);
+  const [homeLogo, setHomeLogo] = useState<string>("");
+  const [awayLogo, setAwayLogo] = useState<string>("");
+  const [logoLoading, setLogoLoading] = useState<boolean>(true);
   // Once saved, the boost status is fully owned by the server (it can change
   // here if another match's save reassigns this week's token) — so we mirror
   // it live instead of trusting a local copy taken at mount time. Before
   // saving, the toggle is purely local/editable.
   const boosted = saved ? (match.userPrediction?.boosted ?? false) : boostedInput;
+
+  useEffect(() => {
+    // Fetch logos for both teams
+    const fetchLogos = async () => {
+      setLogoLoading(true);
+      try {
+        const [homeLogoUrl, awayLogoUrl] = await Promise.all([
+          getClubLogoAsync(match.homeTeam),
+          getClubLogoAsync(match.awayTeam)
+        ]);
+        setHomeLogo(homeLogoUrl);
+        setAwayLogo(awayLogoUrl);
+      } catch (error) {
+        console.error("Error fetching logos:", error);
+        // Fallbacks will be handled by getClubLogoAsync
+        setHomeLogo(getClubLogo(match.homeTeam));
+        setAwayLogo(getClubLogo(match.awayTeam));
+      } finally {
+        setLogoLoading(false);
+      }
+    };
+
+    fetchLogos();
+  }, [match.homeTeam, match.awayTeam]);
 
   async function save() {
     if (home === "" || away === "") {
@@ -156,13 +184,33 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       </div>
 
       <div className={`flex items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+        <div className="flex items-center gap-2">
+          <img
+            src={homeLogo || getClubLogo(match.homeTeam)}
+            alt={`${match.homeTeam} logo`}
+            className="w-5 h-5"
+            onError={(e) => {
+              e.target.src = getClubLogo(match.homeTeam);
+            }}
+          />
+          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+        </div>
         <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1 py-1 flex-shrink-0">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
+          <img
+            src={awayLogo || getClubLogo(match.awayTeam)}
+            alt={`${match.awayTeam} logo`}
+            className="w-5 h-5"
+            onError={(e) => {
+              e.target.src = getClubLogo(match.awayTeam);
+            }}
+          />
+        </div>
       </div>
 
       {match.homeResult !== null && (

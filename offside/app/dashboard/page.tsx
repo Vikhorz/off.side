@@ -21,10 +21,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [competition, setCompetition] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [page, setPage] = useState(0);
 
   const { data: matches, mutate } = useSWR(
-    `/api/matches${competition ? `?competition=${competition}` : ""}`,
+    `/api/matches${competition ? `?competition=${competition}` : ""}${
+      competition || page > 0 ? `&page=${page}` : ""
+    }`,
     fetcher,
     { refreshInterval: 30000, revalidateOnFocus: false }
   );
@@ -77,7 +79,10 @@ export default function DashboardPage() {
 
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 scrollbar-hide">
           <button
-            onClick={() => setCompetition(null)}
+            onClick={() => {
+              setCompetition(null);
+              setPage(0);
+            }}
             className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
               competition === null ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"
             }`}
@@ -87,7 +92,10 @@ export default function DashboardPage() {
           {COMPETITIONS.map((c) => (
             <button
               key={c.code}
-              onClick={() => setCompetition(c.code)}
+              onClick={() => {
+                setCompetition(c.code);
+                setPage(0);
+              }}
               className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
                 competition === c.code ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"
               }`}
@@ -105,21 +113,31 @@ export default function DashboardPage() {
           <p className="text-sm text-steel text-center py-8">{t("dashboard.noMatches")}</p>
         )}
         <div className="relative">
-          {(showAll ? matches : matches.slice(0, 7)).map((m: any) => (
+          {matches.map((m: any) => (
             <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m)} onSaved={() => mutate()} />
           ))}
-          {!showAll && matches.length > 7 && (
+          {matches.length > 0 && (
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-navy to-transparent pointer-events-none" />
           )}
         </div>
-        {!showAll && matches.length > 7 && (
+        <div className="flex justify-between items-center mt-4">
           <button
-            onClick={() => setShowAll(true)}
-            className="w-full text-sm text-indigo-mid py-2 -mt-4 relative"
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            className={`text-sm text-indigo-mid py-2 px-4 ${page === 0 ? "opacity-50" : ""}`}
           >
-            {t("dashboard.showMore")}
+            {t("dashboard.previous")}
           </button>
-        )}
+          <span className="text-xs text-steel">
+            Page {page + 1}
+          </span>
+          <button
+            onClick={() => setPage(page + 1)}
+            className="text-sm text-indigo-mid py-2 px-4"
+          >
+            {t("dashboard.next")}
+          </button>
+        </div>
 
         <div className="mt-6">
           <ActivityFeed />
