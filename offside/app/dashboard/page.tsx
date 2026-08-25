@@ -107,7 +107,7 @@ export default function DashboardPage() {
     // Group matches by week and find the boost holder for each week
     const weekBoostHolders = new Map<string, any>();
 
-    matches.forEach(match => {
+    matches.forEach((match: any) => {
       const weekKey = getIsoWeekKey(new Date(match.kickoff));
       // Only consider matches with boosted predictions that are not yet locked
       if (match.userPrediction?.boosted) {
