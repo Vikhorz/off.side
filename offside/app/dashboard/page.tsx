@@ -75,6 +75,8 @@ export default function DashboardPage() {
   }
 
   // Ensure we have matches data before processing
+  let open: any[] = [];
+  let nextMatch: any | null = null;
   if (isLoading) {
     open = [];
     nextMatch = null;
