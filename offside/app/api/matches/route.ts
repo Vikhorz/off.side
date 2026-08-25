@@ -11,18 +11,19 @@ export async function GET(req: NextRequest) {
   // Parse and validate pagination parameters
   const days = daysParam ? Math.min(Math.max(1, Number(daysParam)), 365) : 60; // Limit days to 1-365
   const page = pageParam ? Math.max(0, Number(pageParam)) : 0; // Ensure page is not negative
-  const MAX_PAGE = 50; // Limit to ~1 year of data (50 * 7 days)
   const pageSize = 7; // 7-days per page
+  const MAX_PAGE = Math.ceil(days / pageSize) - 1; // Limit to the number of pages needed for the given days
 
   // Cap page to prevent excessive date calculations
   const cappedPage = Math.min(page, MAX_PAGE);
 
   const now = new Date();
 
-  // Prevent potential overflow in date calculations
-  const safeTimeOffset = Math.min(cappedPage * pageSize * 86400000, 8640000000); // Max ~100 days offset
-  const windowStart = new Date(now.getTime() + safeTimeOffset);
-  const windowEnd = new Date(now.getTime() + Math.min((cappedPage + 1) * pageSize * 86400000, 8640000000)); // Max ~100 days offset
+  // Calculate offset in days, with maximum limit to prevent overflow
+  const offsetDays = cappedPage * pageSize;
+
+  const windowStart = new Date(now.getTime() + offsetDays * 86400000);
+  const windowEnd = new Date(now.getTime() + Math.min((offsetDays + pageSize), days) * 86400000);
 
   const matches = await prisma.match.findMany({
     where: {

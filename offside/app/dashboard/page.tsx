@@ -3,7 +3,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MatchCard } from "@/components/MatchCard";
 import { Countdown } from "@/components/Countdown";
@@ -37,22 +37,22 @@ export default function DashboardPage() {
     }
   );
 
-// Helper function to build the matches API URL
-function buildMatchesUrl(competition: string | null, page: number): string {
-  let url = '/api/matches';
+  // Helper function to build the matches API URL
+  function buildMatchesUrl(competition: string | null, page: number): string {
+    let url = '/api/matches';
 
-  // Add competition parameter if provided
-  if (competition) {
-    url += `?competition=${competition}`;
+    // Add competition parameter if provided
+    if (competition) {
+      url += `?competition=${competition}`;
+    }
+
+    // Add page parameter if page > 0
+    if (page > 0) {
+      url += competition ? `&page=${page}` : `?page=${page}`;
+    }
+
+    return url;
   }
-
-  // Add page parameter if page > 0
-  if (page > 0) {
-    url += competition ? `&page=${page}` : `?page=${page}`;
-  }
-
-  return url;
-}
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -100,21 +100,46 @@ function buildMatchesUrl(competition: string | null, page: number): string {
     nextMatch = [...open].sort((a: any, b: any) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())[0];
   }
 
-  // Boost is one token per calendar week — find the holder within the SAME
-  // week as the match being checked, not globally across the whole season.
-  function boostAvailableFor(match: any) {
-    // Guard against missing matches data
-    if (!matches || matches.length === 0) return true;
+  // Optimize boost availability calculation - precompute boost holders per week
+  const boostAvailabilityMap = useMemo(() => {
+    if (!matches || matches.length === 0) return new Map();
 
-    const weekKey = getIsoWeekKey(new Date(match.kickoff));
-    const holder = matches.find(
-      (m: any) => m.userPrediction?.boosted && getIsoWeekKey(new Date(m.kickoff)) === weekKey
-    );
-    if (!holder) return true;
-    if (holder.id === match.id) return true;
-    const holderLocked = new Date() >= new Date(holder.kickoff);
-    return !holderLocked;
-  }
+    // Group matches by week and find the boost holder for each week
+    const weekBoostHolders = new Map<string, any>();
+
+    matches.forEach(match => {
+      const weekKey = getIsoWeekKey(new Date(match.kickoff));
+      // Only consider matches with boosted predictions that are not yet locked
+      if (match.userPrediction?.boosted) {
+        const matchDate = new Date(match.kickoff);
+        const isLocked = new Date() >= matchDate;
+
+        // If no holder yet for this week, or current holder is locked, this match becomes the holder
+        if (!weekBoostHolders.has(weekKey) || isLocked) {
+          weekBoostHolders.set(weekKey, match);
+        }
+      }
+    });
+
+    return weekBoostHolders;
+  }, [matches]);
+
+  // Memoized boost availability function
+  const boostAvailableFor = useMemo(() => {
+    return (match: any) => {
+      // Guard against missing matches data
+      if (!matches || matches.length === 0) return true;
+
+      const weekKey = getIsoWeekKey(new Date(match.kickoff));
+      const holder = boostAvailabilityMap.get(weekKey);
+
+      if (!holder) return true;
+      if (holder.id === match.id) return true;
+
+      const holderLocked = new Date() >= new Date(holder.kickoff);
+      return !holderLocked;
+    };
+  }, [matches, boostAvailabilityMap]);
 
   // Calculate max reasonable page based on current date to avoid overflow
   // Assuming we don't need to show matches more than 2 years in the future/past

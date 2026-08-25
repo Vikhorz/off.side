@@ -205,7 +205,9 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
               }}
             />
           </div>
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block">{match.homeTeam}</span>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block" title={match.homeTeam}>
+            {match.homeTeam}
+          </span>
         </div>
         <div className="flex-shrink-0 flex items-center gap-3 bg-navy border border-border rounded-md px-3 py-1.5">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
@@ -213,7 +215,9 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block text-end">{match.awayTeam}</span>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block text-end" title={match.awayTeam}>
+            {match.awayTeam}
+          </span>
           <div className="relative w-8 h-8 flex-shrink-0">
             <img
               src={awayLogo}
@@ -231,7 +235,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       {match.homeResult !== null && (
         <div className="text-[11px] text-steel mt-2 text-center">
           {t("match.finalResult")}: {match.homeResult}–{match.awayResult}
-          {match.userPrediction?.pointsAwarded !== null && match.userPrediction?.pointsAwarded !== undefined && (
+          {match.userPrediction && match.userPrediction.pointsAwarded !== null && (
             <span className="text-indigo-mid font-medium"> · +{match.userPrediction.pointsAwarded} pts</span>
           )}
         </div>
