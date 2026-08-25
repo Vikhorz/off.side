@@ -4,6 +4,9 @@ const logoCache: Record<string, string> = {};
 // TheSportsDB API base URL
 const THE_SPORTS_DB_API = "https://www.thesportsdb.com/api/v1/json/3";
 
+// Request timeout for logo fetching (in milliseconds)
+const LOGO_REQUEST_TIMEOUT = 5000;
+
 // Helper function to normalize team names for API search
 function normalizeTeamName(name: string): string {
   return name
@@ -124,7 +127,7 @@ const FALLBACK_LOGOS: Record<string, string> = {
   "default": "https://www.thesportsdb.com/images/media/team/badge/default.png"
 };
 
-// Function to fetch club logo from TheSportsDB API
+// Function to fetch club logo from TheSportsDB API with timeout
 export async function fetchClubLogo(clubName: string): Promise<string> {
   // Check cache first
   if (logoCache[clubName]) {
@@ -137,11 +140,19 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
     return FALLBACK_LOGOS[clubName];
   }
 
+  // Create a timeout promise
+  const timeoutPromise = new Promise<Response>((_, reject) =>
+    setTimeout(() => reject(new Error('Logo request timeout')), LOGO_REQUEST_TIMEOUT)
+  );
+
   try {
     const normalizedName = normalizeTeamName(clubName);
-    const response = await fetch(
-      `${THE_SPORTS_DB_API}/searchteams.php?t=${encodeURIComponent(normalizedName)}`
-    );
+
+    // Race the fetch against timeout
+    const response = await Promise.race([
+      fetch(`${THE_SPORTS_DB_API}/searchteams.php?t=${encodeURIComponent(normalizedName)}`),
+      timeoutPromise
+    ]) as Response;
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -155,10 +166,11 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
       return logoUrl;
     }
 
-    // If no team found, try a broader search
-    const searchResponse = await fetch(
-      `${THE_SPORTS_DB_API}/searchteams.php?t=${encodeURIComponent(clubName)}`
-    );
+    // If no team found, try a broader search with timeout
+    const searchResponse = await Promise.race([
+      fetch(`${THE_SPORTS_DB_API}/searchteams.php?t=${encodeURIComponent(clubName)}`),
+      timeoutPromise
+    ]) as Response;
 
     if (!searchResponse.ok) {
       throw new Error(`Search API request failed with status ${searchResponse.status}`);

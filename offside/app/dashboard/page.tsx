@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const { data: matches, isLoading, error, mutate } = useSWR(
-    `/api/matches${competition ? `?competition=${competition}` : ""}${page > 0 ? (competition ? `&page=${page}` : `?page=${page}`) : ""}`,
+    buildMatchesUrl(competition, page),
     fetcher,
     {
       refreshInterval: 30000,
@@ -36,6 +36,23 @@ export default function DashboardPage() {
       retryCount: 3
     }
   );
+
+// Helper function to build the matches API URL
+function buildMatchesUrl(competition: string | null, page: number): string {
+  let url = '/api/matches';
+
+  // Add competition parameter if provided
+  if (competition) {
+    url += `?competition=${competition}`;
+  }
+
+  // Add page parameter if page > 0
+  if (page > 0) {
+    url += competition ? `&page=${page}` : `?page=${page}`;
+  }
+
+  return url;
+}
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
