@@ -22,20 +22,29 @@ export default function DashboardPage() {
   const { t } = useI18n();
   const [competition, setCompetition] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const { data: matches, mutate } = useSWR(
+  const { data: matches, isLoading, error, mutate } = useSWR(
     `/api/matches${competition ? `?competition=${competition}` : ""}${
       competition || page > 0 ? `&page=${page}` : ""
     }`,
     fetcher,
-    { refreshInterval: 30000, revalidateOnFocus: false }
+    {
+      refreshInterval: 30000,
+      revalidateOnFocus: false,
+      // Don't refetch automatically when page changes to prevent infinite loops
+      dedupingInterval: 30000,
+      // Retry failed requests up to 3 times
+      retryCount: 3
+    }
   );
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  if (status === "loading" || !matches) {
+  // Handle loading and error states
+  if (isLoading && !matches) {
     return (
       <div className="min-h-screen pb-16 sm:pb-0">
         <Navbar />
@@ -48,12 +57,38 @@ export default function DashboardPage() {
     );
   }
 
-  const open = matches.filter((m: any) => new Date() < new Date(m.kickoff));
-  const nextMatch = [...open].sort((a: any, b: any) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())[0];
+  if (error) {
+    return (
+      <div className="min-h-screen pb-16 sm:pb-0">
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 py-6 text-center">
+          <p className="text-coral-mid">Failed to load matches. Please try again later.</p>
+          <button
+            onClick={() => mutate()}
+            className="text-indigo-mid hover:text-indigo-bg underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure we have matches data before processing
+  if (isLoading) {
+    open = [];
+    nextMatch = null;
+  } else {
+    open = matches.filter((m: any) => new Date() < new Date(m.kickoff));
+    nextMatch = [...open].sort((a: any, b: any) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())[0];
+  }
 
   // Boost is one token per calendar week — find the holder within the SAME
   // week as the match being checked, not globally across the whole season.
   function boostAvailableFor(match: any) {
+    // Guard against missing matches data
+    if (!matches || matches.length === 0) return true;
+
     const weekKey = getIsoWeekKey(new Date(match.kickoff));
     const holder = matches.find(
       (m: any) => m.userPrediction?.boosted && getIsoWeekKey(new Date(m.kickoff)) === weekKey
@@ -63,6 +98,10 @@ export default function DashboardPage() {
     const holderLocked = new Date() >= new Date(holder.kickoff);
     return !holderLocked;
   }
+
+  // Calculate max reasonable page based on current date to avoid overflow
+  // Assuming we don't need to show matches more than 2 years in the future/past
+  const MAX_REASONABLE_PAGE = 104; // ~2 years * 52 weeks / 7 days per page
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0">
@@ -121,19 +160,36 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="flex justify-between items-center mt-4">
+          {/* Prevent going below page 0 or beyond reasonable limit */}
           <button
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
-            className={`text-sm text-indigo-mid py-2 px-4 ${page === 0 ? "opacity-50" : ""}`}
+            onClick={() => {
+              const newPage = Math.max(0, page - 1);
+              if (newPage !== page) {
+                setPage(newPage);
+              }
+            }}
+            disabled={page === 0 || loadingMore}
+            className={`text-sm text-indigo-mid py-2 px-4 ${page === 0 || loadingMore ? "opacity-50" : ""}`}
           >
             {t("dashboard.previous")}
           </button>
           <span className="text-xs text-steel">
             Page {page + 1}
           </span>
+          {/* Prevent going beyond reasonable page limit */}
           <button
-            onClick={() => setPage(page + 1)}
-            className="text-sm text-indigo-mid py-2 px-4"
+            onClick={() => {
+              const newPage = page + 1;
+              // Only allow page change if within reasonable bounds
+              if (newPage <= MAX_REASONABLE_PAGE && newPage !== page) {
+                setLoadingMore(true);
+                setPage(newPage);
+                // Reset loading state after a short delay to prevent rapid firing
+                setTimeout(() => setLoadingMore(false), 1000);
+              }
+            }}
+            disabled={page >= MAX_REASONABLE_PAGE || loadingMore}
+            className={`text-sm text-indigo-mid py-2 px-4 ${page >= MAX_REASONABLE_PAGE || loadingMore ? "opacity-50" : ""}`}
           >
             {t("dashboard.next")}
           </button>
