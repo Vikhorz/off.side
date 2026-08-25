@@ -201,14 +201,11 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
               className="absolute inset-0 w-full h-full object-contain"
               onError={(e) => {
                 const imgElement = e.target as HTMLImageElement;
-                const fallbackSrc = getClubLogo(match.homeTeam);
-                if (imgElement.src !== fallbackSrc) {
-                  imgElement.src = fallbackSrc;
-                }
+                imgElement.src = getClubLogo(match.homeTeam);
               }}
             />
           </div>
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px]">{match.homeTeam}</span>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block">{match.homeTeam}</span>
         </div>
         <div className="flex-shrink-0 flex items-center gap-3 bg-navy border border-border rounded-md px-3 py-1.5">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
@@ -216,7 +213,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] text-end">{match.awayTeam}</span>
+          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block text-end">{match.awayTeam}</span>
           <div className="relative w-8 h-8 flex-shrink-0">
             <img
               src={awayLogo}
@@ -224,10 +221,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
               className="absolute inset-0 w-full h-full object-contain"
               onError={(e) => {
                 const imgElement = e.target as HTMLImageElement;
-                const fallbackSrc = getClubLogo(match.awayTeam);
-                if (imgElement.src !== fallbackSrc) {
-                  imgElement.src = fallbackSrc;
-                }
+                imgElement.src = getClubLogo(match.awayTeam);
               }}
             />
           </div>
