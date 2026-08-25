@@ -25,9 +25,7 @@ export default function DashboardPage() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const { data: matches, isLoading, error, mutate } = useSWR(
-    `/api/matches${competition ? `?competition=${competition}` : ""}${
-      competition || page > 0 ? `&page=${page}` : ""
-    }`,
+    `/api/matches${competition ? `?competition=${competition}` : ""}${page > 0 ? (competition ? `&page=${page}` : `?page=${page}`) : ""}`,
     fetcher,
     {
       refreshInterval: 30000,
