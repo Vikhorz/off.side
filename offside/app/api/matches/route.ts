@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
+  console.log('API /matches: route called');
+
   const session = await auth();
   const competition = req.nextUrl.searchParams.get("competition");
   const daysParam = req.nextUrl.searchParams.get("days");
@@ -35,10 +37,16 @@ export async function GET(req: NextRequest) {
     ...(skip !== undefined && take !== undefined ? { skip, take } : {}),
   });
 
+  // Log the number of matches fetched for debugging
+  console.log(`API /matches: fetched ${matches.length} matches`);
+
   if (!session?.user?.id) return NextResponse.json(matches);
 
   const predictions = await prisma.prediction.findMany({ where: { userId: session.user.id } });
   const predMap = Object.fromEntries(predictions.map((p: typeof predictions[number]) => [p.matchId, p]));
 
-  return NextResponse.json(matches.map((m: typeof matches[number]) => ({ ...m, userPrediction: predMap[m.id] ?? null })));
+  const enrichedMatches = matches.map((m: typeof matches[number]) => ({ ...m, userPrediction: predMap[m.id] ?? null }));
+  console.log(`API /matches: returning ${enrichedMatches.length} matches with predictions`);
+
+  return NextResponse.json(enrichedMatches);
 }

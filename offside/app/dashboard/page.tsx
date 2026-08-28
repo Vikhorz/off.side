@@ -1,20 +1,15 @@
 "use client";
-import { useState } from "react";
-import useSWR from "swr";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MatchCard } from "@/components/MatchCard";
 import { Countdown } from "@/components/Countdown";
 import { ActivityFeed } from "@/components/ActivityFeed";
-import LeaderboardPreview from "@/components/LeaderboardPreview";
-import ActivityFeedPreview from "@/components/ActivityFeedPreview";
+import { ActivityFeedPreview } from "@/components/ActivityFeedPreview";
 import { useI18n } from "@/lib/i18n";
 import { getIsoWeekKey } from "@/lib/week";
 import { COMPETITIONS } from "@/lib/competitions";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function DashboardPage() {
   const { status } = useSession();
@@ -23,26 +18,50 @@ export default function DashboardPage() {
   const [competition, setCompetition] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(0);
-
-  const { data: matches, mutate } = useSWR(
-    () => {
-      const params = new URLSearchParams();
-      if (competition) params.set('competition', competition);
-      if (!showAll) {
-        params.set('page', page.toString());
-        params.set('limit', '7');
-      }
-      return `/api/matches${params.toString() ? `?${params}` : ''}`;
-    },
-    fetcher,
-    { refreshInterval: 30000, revalidateOnFocus: false }
-  );
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
   }, [status, router]);
 
-  if (status === "loading" || !matches) {
+  // Reset page when competition or showAll changes
+  useEffect(() => {
+    setPage(0);
+  }, [competition, showAll]);
+
+  const fetchMatches = async () => {
+    try {
+      setLoading(true);
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', showAll ? '0' : '7'); // 0 means no limit
+      if (competition) {
+        params.append('competition', competition);
+      }
+      const res = await fetch(`/api/matches?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      setMatches(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMatches();
+  }, [competition, showAll, page]);
+
+  if (loading) {
     return (
       <div className="min-h-screen pb-16 sm:pb-0">
         <Navbar />
@@ -50,6 +69,17 @@ export default function DashboardPage() {
           <div className="skeleton h-20 w-full mb-4" />
           <div className="skeleton h-24 w-full" />
           <div className="skeleton h-24 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen pb-16 sm:pb-0">
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 py-6">
+          <p className="text-center text-coral-mid">{error}</p>
         </div>
       </div>
     );
@@ -115,7 +145,11 @@ export default function DashboardPage() {
         )}
         <div className="relative">
           {(showAll ? matches : matches.slice(0, 7)).map((m: any) => (
-            <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m)} onSaved={() => mutate()} />
+            <MatchCard key={m.id} match={m} boostAvailable={boostAvailableFor(m)} onSaved={() => {
+              // Refetch after saving
+              setPage(0); // Reset to first page after saving to refetch
+              fetchMatches();
+            }} />
           ))}
           {!showAll && matches.length > 7 && (
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-navy to-transparent pointer-events-none" />
