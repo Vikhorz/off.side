@@ -184,7 +184,9 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <img
             src={homeLogoUrl}
             alt={`${match.homeTeam} logo`}
-            className="w-8 h-8 rounded flex-shrink-0"
+            width="24"
+            height="24"
+            className="rounded flex-shrink-0"
             onError={(e) => {
               const img = e.target as HTMLImageElement;
               img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
@@ -202,7 +204,9 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <img
             src={awayLogoUrl}
             alt={`${match.awayTeam} logo`}
-            className="w-8 h-8 rounded flex-shrink-0"
+            width="24"
+            height="24"
+            className="rounded flex-shrink-0"
             onError={(e) => {
               const img = e.target as HTMLImageElement;
               img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
