@@ -25,9 +25,15 @@ export default function DashboardPage() {
   const [page, setPage] = useState(0);
 
   const { data: matches, mutate } = useSWR(
-    `/api/matches${competition ? `?competition=${competition}` : ""}${
-      !showAll ? `&page=${page}&limit=7` : ""
-    }`,
+    () => {
+      const params = new URLSearchParams();
+      if (competition) params.set('competition', competition);
+      if (!showAll) {
+        params.set('page', page.toString());
+        params.set('limit', '7');
+      }
+      return `/api/matches${params.toString() ? `?${params}` : ''}`;
+    },
     fetcher,
     { refreshInterval: 30000, revalidateOnFocus: false }
   );
