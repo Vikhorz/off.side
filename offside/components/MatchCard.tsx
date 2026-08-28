@@ -89,19 +89,26 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   // saving, the toggle is purely local/editable.
   const boosted = saved ? (match.userPrediction?.boosted ?? false) : boostedInput;
 
-  // State for logo URLs, initialized with synchronous fallback
-  const [homeLogoUrl, setHomeLogoUrl] = useState<string>(getClubLogo(match.homeTeam));
-  const [awayLogoUrl, setAwayLogoUrl] = useState<string>(getClubLogo(match.awayTeam));
+  // State for logo URLs, initialized with loading state to prevent flicker
+  const [homeLogoUrl, setHomeLogoUrl] = useState<string>("");
+  const [awayLogoUrl, setAwayLogoUrl] = useState<string>("");
 
-  // Fetch actual logos in background when team names change
+  // Fetch logos when team names change
   useEffect(() => {
     const fetchLogos = async () => {
-      const [homeLogo, awayLogo] = await Promise.all([
-        getClubLogoAsync(match.homeTeam),
-        getClubLogoAsync(match.awayTeam)
-      ]);
-      setHomeLogoUrl(homeLogo);
-      setAwayLogoUrl(awayLogo);
+      try {
+        const [homeLogo, awayLogo] = await Promise.all([
+          getClubLogoAsync(match.homeTeam),
+          getClubLogoAsync(match.awayTeam)
+        ]);
+        setHomeLogoUrl(homeLogo);
+        setAwayLogoUrl(awayLogo);
+      } catch (error) {
+        console.warn('Failed to load logos:', error);
+        // Set fallbacks on error
+        setHomeLogoUrl(getClubLogo(match.homeTeam));
+        setAwayLogoUrl(getClubLogo(match.awayTeam));
+      }
     };
 
     fetchLogos();
