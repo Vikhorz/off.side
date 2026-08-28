@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
-import { getClubLogo } from "@/lib/clubs";
+import { getClubLogoAsync } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -89,9 +89,23 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   // saving, the toggle is purely local/editable.
   const boosted = saved ? (match.userPrediction?.boosted ?? false) : boostedInput;
 
-  // Memoize logo URLs to prevent potential re-render issues
-  const homeLogoUrl = getClubLogo(match.homeTeam);
-  const awayLogoUrl = getClubLogo(match.awayTeam);
+  // State for logo URLs, initialized with synchronous fallback
+  const [homeLogoUrl, setHomeLogoUrl] = useState<string>(getClubLogo(match.homeTeam));
+  const [awayLogoUrl, setAwayLogoUrl] = useState<string>(getClubLogo(match.awayTeam));
+
+  // Fetch actual logos in background when team names change
+  useEffect(() => {
+    const fetchLogos = async () => {
+      const [homeLogo, awayLogo] = await Promise.all([
+        getClubLogoAsync(match.homeTeam),
+        getClubLogoAsync(match.awayTeam)
+      ]);
+      setHomeLogoUrl(homeLogo);
+      setAwayLogoUrl(awayLogo);
+    };
+
+    fetchLogos();
+  }, [match.homeTeam, match.awayTeam]);
 
   async function save() {
     if (home === "" || away === "") {
