@@ -1,8 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
-import { getClubLogo, getClubLogoAsync } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -83,47 +82,11 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [saved, setSaved] = useState(!!match.userPrediction);
-
-  // Initialize with synchronous logo to avoid flicker
-  const [homeLogo, setHomeLogo] = useState<string>(getClubLogo(match.homeTeam));
-  const [awayLogo, setAwayLogo] = useState<string>(getClubLogo(match.awayTeam));
-  const [logoLoading, setLogoLoading] = useState<boolean>(true);
-
   // Once saved, the boost status is fully owned by the server (it can change
   // here if another match's save reassigns this week's token) — so we mirror
   // it live instead of trusting a local copy taken at mount time. Before
   // saving, the toggle is purely local/editable.
   const boosted = saved ? (match.userPrediction?.boosted ?? false) : boostedInput;
-
-  useEffect(() => {
-    // Fetch logos for both teams
-    const fetchLogos = async () => {
-      setLogoLoading(true);
-      try {
-        const [homeLogoUrl, awayLogoUrl] = await Promise.all([
-          getClubLogoAsync(match.homeTeam),
-          getClubLogoAsync(match.awayTeam)
-        ]);
-        // Only set state if the URL is different to avoid unnecessary renders and flicker
-        if (homeLogoUrl !== homeLogo) {
-          setHomeLogo(homeLogoUrl);
-        }
-        if (awayLogoUrl !== awayLogo) {
-          setAwayLogo(awayLogoUrl);
-        }
-      } catch (error) {
-        console.error("Error fetching logos:", error);
-        // Fallbacks will be handled by getClubLogo (already in state)
-        // Ensure we have the fallback set (should already be there from initialization)
-        setHomeLogo(getClubLogo(match.homeTeam));
-        setAwayLogo(getClubLogo(match.awayTeam));
-      } finally {
-        setLogoLoading(false);
-      }
-    };
-
-    fetchLogos();
-  }, [match.homeTeam, match.awayTeam]);
 
   async function save() {
     if (home === "" || away === "") {
@@ -192,50 +155,20 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         )}
       </div>
 
-      <div className={`flex items-center gap-4 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 flex-shrink-0">
-            <img
-              src={homeLogo}
-              alt={`${match.homeTeam} logo`}
-              className="absolute inset-0 w-full h-full object-contain"
-              onError={(e) => {
-                const imgElement = e.target as HTMLImageElement;
-                imgElement.src = getClubLogo(match.homeTeam);
-              }}
-            />
-          </div>
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block" title={match.homeTeam}>
-            {match.homeTeam}
-          </span>
-        </div>
-        <div className="flex-shrink-0 flex items-center gap-3 bg-navy border border-border rounded-md px-3 py-1.5">
+      <div className={`flex items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
+        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1 py-1 flex-shrink-0">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="font-grotesk text-sm font-medium text-warm truncate max-w-[100px] block text-end" title={match.awayTeam}>
-            {match.awayTeam}
-          </span>
-          <div className="relative w-8 h-8 flex-shrink-0">
-            <img
-              src={awayLogo}
-              alt={`${match.awayTeam} logo`}
-              className="absolute inset-0 w-full h-full object-contain"
-              onError={(e) => {
-                const imgElement = e.target as HTMLImageElement;
-                imgElement.src = getClubLogo(match.awayTeam);
-              }}
-            />
-          </div>
-        </div>
+        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
       </div>
 
       {match.homeResult !== null && (
         <div className="text-[11px] text-steel mt-2 text-center">
           {t("match.finalResult")}: {match.homeResult}–{match.awayResult}
-          {match.userPrediction && match.userPrediction.pointsAwarded !== null && (
+          {match.userPrediction?.pointsAwarded !== null && match.userPrediction?.pointsAwarded !== undefined && (
             <span className="text-indigo-mid font-medium"> · +{match.userPrediction.pointsAwarded} pts</span>
           )}
         </div>
@@ -243,7 +176,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
 
       {!locked && (
         <div className="flex flex-wrap justify-between items-center gap-y-2 mt-2.5">
-          <label className={`flex items-center gap-2 text-[10px] sm:text-[11px] text-steel ${saved ? "opacity-50" : "cursor-pointer"}`}>
+          <label className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] text-steel ${saved ? "opacity-50" : "cursor-pointer"}`}>
             <button
               type="button"
               onClick={() => !saved && setBoostedInput((b) => !b)}
