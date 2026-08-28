@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
+import { getClubLogo } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -156,13 +157,35 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       </div>
 
       <div className={`flex items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+        <div className="flex items-center gap-2">
+          <img
+            src={getClubLogo(match.homeTeam)}
+            alt={`${match.homeTeam} logo`}
+            className="w-6 h-6 rounded flex-shrink-0"
+            onError={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
+            }}
+          />
+          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate max-w-xs">{match.homeTeam}</span>
+        </div>
         <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1 py-1 flex-shrink-0">
           <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           <span className="text-steel text-sm">–</span>
           <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
         </div>
-        <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end max-w-xs">{match.awayTeam}</span>
+          <img
+            src={getClubLogo(match.awayTeam)}
+            alt={`${match.awayTeam} logo`}
+            className="w-6 h-6 rounded flex-shrink-0"
+            onError={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
+            }}
+          />
+        </div>
       </div>
 
       {match.homeResult !== null && (

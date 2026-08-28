@@ -22,9 +22,12 @@ export default function DashboardPage() {
   const { t } = useI18n();
   const [competition, setCompetition] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [page, setPage] = useState(0);
 
   const { data: matches, mutate } = useSWR(
-    `/api/matches${competition ? `?competition=${competition}` : ""}`,
+    `/api/matches${competition ? `?competition=${competition}` : ""}${
+      !showAll ? `&page=${page}&limit=7` : ""
+    }`,
     fetcher,
     { refreshInterval: 30000, revalidateOnFocus: false }
   );
@@ -119,6 +122,32 @@ export default function DashboardPage() {
           >
             {t("dashboard.showMore")}
           </button>
+        )}
+
+        {!showAll && (
+          <div className="flex justify-between items-center mt-4">
+            <button
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+              className={`px-3 py-1.5 rounded-md border border-border text-sm ${
+                page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"
+              }`}
+            >
+              {t("dashboard.previous")}
+            </button>
+            <span className="text-sm text-steel">
+              Page {page + 1} of {Math.ceil(matches.length / 7)}
+            </span>
+            <button
+              onClick={() => setPage(page + 1)}
+              disabled={(page + 1) * 7 >= matches.length}
+              className={`px-3 py-1.5 rounded-md border border-border text-sm ${
+                (page + 1) * 7 >= matches.length ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"
+              }`}
+            >
+              {t("dashboard.next")}
+            </button>
+          </div>
         )}
 
         <div className="mt-6">
