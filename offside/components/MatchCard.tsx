@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
-import { getClubLogo, getClubLogoAsync } from "@/lib/clubs";
+import { getClubLogo } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -92,25 +92,6 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   // State for logo URLs, initialized with immediate fallback to prevent flicker
   const [homeLogoUrl, setHomeLogoUrl] = useState<string>(getClubLogo(match.homeTeam));
   const [awayLogoUrl, setAwayLogoUrl] = useState<string>(getClubLogo(match.awayTeam));
-
-  // Fetch actual logos in background when team names change
-  useEffect(() => {
-    const fetchLogos = async () => {
-      try {
-        const [homeLogo, awayLogo] = await Promise.all([
-          getClubLogoAsync(match.homeTeam),
-          getClubLogoAsync(match.awayTeam)
-        ]);
-        setHomeLogoUrl(homeLogo);
-        setAwayLogoUrl(awayLogo);
-      } catch (error) {
-        console.warn('Failed to load logos:', error);
-        // Keep the fallback already set
-      }
-    };
-
-    fetchLogos();
-  }, [match.homeTeam, match.awayTeam]);
 
   async function save() {
     if (home === "" || away === "") {
