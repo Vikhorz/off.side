@@ -117,9 +117,7 @@ export default function DashboardPage() {
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 scrollbar-hide">
           <button
             onClick={() => setCompetition(null)}
-            className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
-              competition === null ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"
-            }`}
+            className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${competition === null ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"}`}
           >
             All
           </button>
@@ -127,9 +125,7 @@ export default function DashboardPage() {
             <button
               key={c.code}
               onClick={() => setCompetition(c.code)}
-              className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
-                competition === c.code ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"
-              }`}
+              className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${competition === c.code ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"}`}
             >
               {c.label}
             </button>
@@ -169,9 +165,8 @@ export default function DashboardPage() {
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className={`px-3 py-1.5 rounded-md border border-border text-sm ${
-                page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"
-              }`}
+              className={`px-3 py-1.5 rounded-md border border-border text-sm ${page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"}`
+            }
             >
               {t("dashboard.previous")}
             </button>
@@ -181,9 +176,8 @@ export default function DashboardPage() {
             <button
               onClick={() => setPage(page + 1)}
               disabled={(page + 1) * 7 >= matches.length}
-              className={`px-3 py-1.5 rounded-md border border-border text-sm ${
-                (page + 1) * 7 >= matches.length ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"
-              }`}
+              className={`px-3 py-1.5 rounded-md border border-border text-sm ${(page + 1) * 7 >= matches.length ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"}`
+            }
             >
               {t("dashboard.next")}
             </button>

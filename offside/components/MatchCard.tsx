@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
-import { getClubLogo } from "@/lib/clubs";
+import { getClubLogo, getClubLogoAsync } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -74,6 +74,7 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   boostAvailable: boolean;
   onSaved: () => void;
 }) {
+  console.log('MatchCard rendering for match:', match.id);
   const { t } = useI18n();
   const locked = new Date() >= new Date(match.kickoff);
   const [home, setHome] = useState<number | "">(match.userPrediction?.homeScore ?? "");
@@ -92,6 +93,25 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
   // State for logo URLs, initialized with immediate fallback to prevent flicker
   const [homeLogoUrl, setHomeLogoUrl] = useState<string>(getClubLogo(match.homeTeam));
   const [awayLogoUrl, setAwayLogoUrl] = useState<string>(getClubLogo(match.awayTeam));
+
+  // Fetch actual logos in background when team names change
+  useEffect(() => {
+    const fetchLogos = async () => {
+      try {
+        const [homeLogo, awayLogo] = await Promise.all([
+          getClubLogoAsync(match.homeTeam),
+          getClubLogoAsync(match.awayTeam)
+        ]);
+        setHomeLogoUrl(homeLogo);
+        setAwayLogoUrl(awayLogo);
+      } catch (error) {
+        console.warn('Failed to load logos:', error);
+        // Keep the fallback already set
+      }
+    };
+
+    fetchLogos();
+  }, [match.homeTeam, match.awayTeam]);
 
   async function save() {
     if (home === "" || away === "") {
@@ -165,9 +185,10 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <img
             src={homeLogoUrl}
             alt={`${match.homeTeam} logo`}
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             className="rounded flex-shrink-0"
+            style={{ maxWidth: '24px', maxHeight: '24px', objectFit: 'contain' }}
             onError={(e) => {
               const img = e.target as HTMLImageElement;
               img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
@@ -176,18 +197,23 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
           <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
         </div>
         <div className="flex items-center gap-2 bg-navy border border-border rounded-md px-2 py-1.5">
-          <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
-          <span className="text-steel">–</span>
-          <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
+          <div className="flex items-center gap-1">
+            <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
+          </div>
+          <span className="text-steel mx-2 font-medium">–</span>
+          <div className="flex items-center gap-1">
+            <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
           <img
             src={awayLogoUrl}
             alt={`${match.awayTeam} logo`}
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             className="rounded flex-shrink-0"
+            style={{ maxWidth: '24px', maxHeight: '24px', objectFit: 'contain' }}
             onError={(e) => {
               const img = e.target as HTMLImageElement;
               img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
