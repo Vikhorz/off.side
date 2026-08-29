@@ -6,7 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { MatchCard } from "@/components/MatchCard";
 import { Countdown } from "@/components/Countdown";
 import { ActivityFeed } from "@/components/ActivityFeed";
-import { ActivityFeedPreview } from "@/components/ActivityFeedPreview";
+import ActivityFeedPreview from "@/components/ActivityFeedPreview";
 import { useI18n } from "@/lib/i18n";
 import { getIsoWeekKey } from "@/lib/week";
 import { COMPETITIONS } from "@/lib/competitions";
