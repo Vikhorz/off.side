@@ -1,8 +1,6 @@
 import { handlers } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-export const { GET, POST } = handlers;
-
 // Add error handling wrapper for route handlers
 const wrapHandler = (handler: any) => {
   return async (req: any) => {
@@ -18,7 +16,7 @@ const wrapHandler = (handler: any) => {
   };
 };
 
-// Wrap the handlers with error handling
-export const { GET: GETHandler, POST: POSTHandler } = handlers;
-export const GET = wrapHandler(GETHandler);
-export const POST = wrapHandler(POSTHandler);
+// Wrap the handlers with error handling and export
+export const { GET, POST } = handlers;
+export const GET = wrapHandler(GET);
+export const POST = wrapHandler(POST);
