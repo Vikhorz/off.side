@@ -17,6 +17,6 @@ const wrapHandler = (handler: any) => {
 };
 
 // Wrap the handlers with error handling and export
-export const { GET, POST } = handlers;
-export const GET = wrapHandler(GET);
-export const POST = wrapHandler(POST);
+const { GET: GETHandler, POST: POSTHandler } = handlers;
+export const GET = wrapHandler(GETHandler);
+export const POST = wrapHandler(POSTHandler);
