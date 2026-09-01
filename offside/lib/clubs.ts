@@ -22,6 +22,38 @@ function normalizeTeamName(name: string): string {
     .trim();
 }
 
+// football-data.org's stable team IDs. These crest URLs do not depend on a
+// third-party name search and are the primary source for clubs in our fixtures.
+// Include the common API naming variants because football-data occasionally
+// appends "FC" or uses a shortened display name.
+const FOOTBALL_DATA_TEAM_IDS: Record<string, number> = {
+  "arsenal": 57, "arsenal fc": 57,
+  "aston villa": 58, "aston villa fc": 58,
+  "bournemouth": 1044, "afc bournemouth": 1044,
+  "brentford": 402, "brentford fc": 402,
+  "brighton": 397, "brighton and hove albion": 397,
+  "chelsea": 61, "chelsea fc": 61,
+  "crystal palace": 354, "crystal palace fc": 354,
+  "everton": 62, "everton fc": 62,
+  "fulham": 63, "fulham fc": 63,
+  "liverpool": 64, "liverpool fc": 64,
+  "luton town": 72, "luton town fc": 72,
+  "manchester city": 65, "manchester city fc": 65,
+  "manchester united": 66, "manchester united fc": 66,
+  "newcastle united": 67, "newcastle united fc": 67,
+  "nottingham forest": 351, "nottingham forest fc": 351,
+  "sheffield united": 356, "sheffield united fc": 356,
+  "tottenham hotspur": 73, "tottenham hotspur fc": 73,
+  "west ham united": 563, "west ham united fc": 563,
+  "wolverhampton wanderers": 76, "wolverhampton wanderers fc": 76,
+  "wolves": 76,
+};
+
+function getFootballDataLogo(clubName: string): string | null {
+  const teamId = FOOTBALL_DATA_TEAM_IDS[normalizeTeamName(clubName)];
+  return teamId ? `https://crests.football-data.org/${teamId}.png` : null;
+}
+
 // Fallback logos for common teams (in case API fails)
 const FALLBACK_LOGOS: Record<string, string> = {
   // Premier League
@@ -130,7 +162,7 @@ const FALLBACK_LOGOS: Record<string, string> = {
   "Toulouse": "https://www.thesportsdb.com/images/media/team-badge/1360471482755150.png",
 
   // Default fallback
-  "default": "https://www.thesportsdb.com/images/media/team-badge/default.png"
+  "default": "/logos/club-fallback.svg"
 };
 
 // Helper function to fetch with timeout
@@ -157,6 +189,12 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
   const cached = logoCache[clubName];
   if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY_MS)) {
     return cached.url;
+  }
+
+  const footballDataLogo = getFootballDataLogo(clubName);
+  if (footballDataLogo) {
+    logoCache[clubName] = { url: footballDataLogo, timestamp: Date.now() };
+    return footballDataLogo;
   }
 
   // Check fallback first for faster response
@@ -237,6 +275,9 @@ export function getClubLogo(clubName: string): string {
   if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY_MS)) {
     return cached.url;
   }
+
+  const footballDataLogo = getFootballDataLogo(clubName);
+  if (footballDataLogo) return footballDataLogo;
 
   // Return fallback immediately for better UX
   return FALLBACK_LOGOS[clubName] ?? FALLBACK_LOGOS.default;

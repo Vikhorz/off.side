@@ -18,6 +18,25 @@ type Match = {
   userPrediction: Prediction;
 };
 
+const LOCAL_LOGO_FALLBACK = "/logos/club-fallback.svg";
+
+function ClubLogo({ src, team }: { src: string; team: string }) {
+  const [logoSrc, setLogoSrc] = useState(src);
+
+  return (
+    <img
+      src={logoSrc}
+      alt={`${team} logo`}
+      width="24"
+      height="24"
+      className="h-6 w-6 rounded object-contain flex-shrink-0"
+      onError={() => {
+        if (logoSrc !== LOCAL_LOGO_FALLBACK) setLogoSrc(LOCAL_LOGO_FALLBACK);
+      }}
+    />
+  );
+}
+
 function ScoreStepper({ value, onChange, disabled, label }: {
   value: number | "";
   onChange: (v: number | "") => void;
@@ -180,45 +199,23 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
         )}
       </div>
 
-      <div className={`flex items-center gap-4 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <div className="flex items-center gap-3">
-          <img
-            src={homeLogoUrl}
-            alt={`${match.homeTeam} logo`}
-            width="20"
-            height="20"
-            className="rounded flex-shrink-0"
-            style={{ maxWidth: '24px', maxHeight: '24px', objectFit: 'contain' }}
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
-            }}
-          />
-          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate">{match.homeTeam}</span>
+      <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
+        <div className="min-w-0 flex items-center gap-2">
+          <ClubLogo key={homeLogoUrl} src={homeLogoUrl} team={match.homeTeam} />
+          <span className="font-grotesk text-xs sm:text-sm font-medium leading-tight text-warm min-w-0 break-words line-clamp-2">{match.homeTeam}</span>
         </div>
-        <div className="flex items-center gap-2 bg-navy border border-border rounded-md px-2 py-1.5">
+        <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1.5 py-1.5 sm:px-2">
           <div className="flex items-center gap-1">
             <ScoreStepper value={home} onChange={setHome} disabled={inputsDisabled} label={match.homeTeam} />
           </div>
-          <span className="text-steel mx-2 font-medium">–</span>
+          <span className="text-steel mx-1 font-medium">–</span>
           <div className="flex items-center gap-1">
             <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="font-grotesk text-sm font-medium text-warm flex-1 min-w-0 truncate text-end">{match.awayTeam}</span>
-          <img
-            src={awayLogoUrl}
-            alt={`${match.awayTeam} logo`}
-            width="20"
-            height="20"
-            className="rounded flex-shrink-0"
-            style={{ maxWidth: '24px', maxHeight: '24px', objectFit: 'contain' }}
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.src = "https://www.thesportsdb.com/images/media/team-badge/default.png";
-            }}
-          />
+        <div className="min-w-0 flex items-center justify-end gap-2">
+          <span className="font-grotesk text-xs sm:text-sm font-medium leading-tight text-warm min-w-0 break-words line-clamp-2 text-end">{match.awayTeam}</span>
+          <ClubLogo key={awayLogoUrl} src={awayLogoUrl} team={match.awayTeam} />
         </div>
       </div>
 
