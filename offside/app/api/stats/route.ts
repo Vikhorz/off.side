@@ -10,7 +10,7 @@ export async function GET() {
     const predictions = await prisma.prediction.findMany({
       where: { userId: session.user.id },
       include: { match: true },
-      orderBy: { match: { kickoff: "asc" } },
+      orderBy: { match: { kickoff: "desc" } },
     });
 
     type PredictionWithMatch = typeof predictions[number];

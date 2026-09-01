@@ -54,19 +54,25 @@ export default function LeaderboardPage() {
         {data?.length === 0 && <p className="text-sm text-steel text-center py-8">{t("leaderboard.noPlayers")}</p>}
 
         {top3.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-3 items-end gap-2 mb-4">
             {top3.map((row: any) => {
               const style = medalStyles[row.rank] ?? medalStyles[3];
               return (
-                <div key={row.username} className={`rounded-xl p-3 text-center border border-border ${style.bg} ${style.ring} rank-enter`}>
-                  <div className="text-xl mb-1">{style.label}</div>
-                  <div className="w-9 h-9 rounded-full bg-indigo-bg flex items-center justify-center text-[11px] font-medium text-indigo-mid mx-auto mb-1.5">
+                <div key={row.username} className={`relative min-w-0 rounded-xl p-3 text-center border border-border bg-card ${style.bg} ${style.ring} ${row.rank === 1 ? "-translate-y-1" : ""} rank-enter`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-[10px] text-steel">#{row.rank}</span>
+                    <span className="text-lg leading-none">{style.label}</span>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-indigo-bg flex items-center justify-center text-[11px] font-medium text-indigo-mid mx-auto mb-2">
                     {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
                   </div>
-                  <div className="text-xs font-medium text-warm truncate">
+                  <div className="text-xs font-medium text-warm truncate min-h-4">
                     {isAuthenticated ? row.username : t("leaderboard.anonymous")}
                   </div>
-                  <div className="font-mono text-sm font-medium text-indigo-mid mt-0.5">{row.totalPoints}</div>
+                  <div className="font-mono text-sm font-medium text-indigo-mid mt-2">{row.totalPoints} pts</div>
+                  <div className="text-[10px] text-steel mt-0.5 whitespace-nowrap">
+                    {row.scored}/{row.predictions} {t("leaderboard.scored")}
+                  </div>
                 </div>
               );
             })}
@@ -84,7 +90,7 @@ export default function LeaderboardPage() {
                 <span className="text-sm font-medium text-warm flex-1">
                   {isAuthenticated ? row.username : t("leaderboard.anonymous")}
                 </span>
-                <span className="text-[11px] text-steel">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
+                <span className="text-[11px] text-steel whitespace-nowrap">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
                 <span className="font-mono text-sm font-medium text-indigo-mid">{row.totalPoints} pts</span>
               </div>
             ))}
