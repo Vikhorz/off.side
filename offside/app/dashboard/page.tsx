@@ -165,8 +165,7 @@ export default function DashboardPage() {
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className={`px-3 py-1.5 rounded-md border border-border text-sm ${page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"}`
-            }
+              className={`px-3 py-1.5 rounded-md border border-border text-sm ${page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"}`}
             >
               {t("dashboard.previous")}
             </button>
@@ -176,8 +175,7 @@ export default function DashboardPage() {
             <button
               onClick={() => setPage(page + 1)}
               disabled={(page + 1) * 7 >= matches.length}
-              className={`px-3 py-1.5 rounded-md border border-border text-sm ${(page + 1) * 7 >= matches.length ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"}`
-            }
+              className={`px-3 py-1.5 rounded-md border border-border text-sm ${(page + 1) * 7 >= matches.length ? "opacity-40 cursor-not-allowed" : "hover:bg-indigo/10"}`}
             >
               {t("dashboard.next")}
             </button>
