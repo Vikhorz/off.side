@@ -32,6 +32,7 @@ export async function GET() {
       scoredPredictions: scored.length,
       history: predictions.map((p: PredictionWithMatch) => ({
         match: `${p.match.homeTeam} vs ${p.match.awayTeam}`,
+        date: p.match.kickoff.toISOString(),
         predicted: `${p.homeScore}-${p.awayScore}`,
         result: p.match.homeResult !== null ? `${p.match.homeResult}-${p.match.awayResult}` : null,
         points: p.pointsAwarded,

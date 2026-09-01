@@ -66,6 +66,9 @@ export default function StatsPage() {
             <div key={i} className="flex items-center justify-between px-4 py-2.5">
               <div>
                 <div className="text-xs text-warm">{h.match}</div>
+                <div className="text-[10px] text-indigo-mid mt-0.5">
+                  {new Date(h.date).toLocaleDateString("en-GB", { timeZone: "Asia/Baghdad", day: "numeric", month: "short", year: "numeric" })}
+                </div>
                 <div className="text-[10px] text-steel mt-0.5">
                   {t("stats.predicted")} {h.predicted}{h.result ? ` · ${t("stats.result")} ${h.result}` : ` · ${t("stats.upcoming")}`}
                   {h.boosted && <span className="text-indigo-mid"> · {t("stats.boosted")}</span>}

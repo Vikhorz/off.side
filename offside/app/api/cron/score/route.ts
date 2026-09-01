@@ -32,9 +32,10 @@ function roundLabel(m: ApiMatch): string {
 
 type FetchResult = { code: string; matches: ApiMatchWithCompetition[]; status: number | null; error: string | null };
 
-async function fetchCompetition(code: string, apiKey: string): Promise<FetchResult> {
+async function fetchCompetition(code: string, apiKey: string, dateFrom: string, dateTo: string): Promise<FetchResult> {
   try {
-    const res = await fetch(`https://api.football-data.org/v4/competitions/${code}/matches`, {
+    const params = new URLSearchParams({ dateFrom, dateTo });
+    const res = await fetch(`https://api.football-data.org/v4/competitions/${code}/matches?${params}`, {
       headers: { "X-Auth-Token": apiKey },
       next: { revalidate: 0 },
       signal: AbortSignal.timeout(20000),
@@ -48,15 +49,19 @@ async function fetchCompetition(code: string, apiKey: string): Promise<FetchResu
   }
 }
 
-// Imports the full season's fixtures (bulk insert, skips ones we already
+// Imports a rolling window of fixtures (bulk insert, skips ones we already
 // have) and fills results for any match that's finished but doesn't have a
-// score in our DB yet. Non-fatal on failure — falls back to whatever's
-// already there if the API key is missing or a competition fetch fails.
+// score in our DB yet. Keeping the window bounded makes this safe for a
+// short-lived serverless cron invocation while still catching reschedules,
+// recent results, and upcoming fixtures.
 async function syncFixturesAndResults() {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
   if (!apiKey) return { hasApiKey: false, perCompetition: [] as FetchResult[], matchesFound: 0, resultsUpdated: 0, rescheduled: 0 };
 
-  const results = await Promise.all(COMPETITIONS.map((code) => fetchCompetition(code, apiKey)));
+  const now = new Date();
+  const dateFrom = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+  const dateTo = new Date(now.getTime() + 90 * 86400000).toISOString().slice(0, 10);
+  const results = await Promise.all(COMPETITIONS.map((code) => fetchCompetition(code, apiKey, dateFrom, dateTo)));
   const allMatches = results.flatMap((r) => r.matches);
   const diagnostics = results.map((r) => ({ code: r.code, fetched: r.matches.length, status: r.status, error: r.error }));
 

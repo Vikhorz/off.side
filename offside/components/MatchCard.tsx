@@ -200,9 +200,9 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
       </div>
 
       <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 ${inputsDisabled ? "opacity-60" : ""}`}>
-        <div className="min-w-0 flex items-center gap-2">
+        <div className="min-w-0 flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:gap-2">
           <ClubLogo key={homeLogoUrl} src={homeLogoUrl} team={match.homeTeam} />
-          <span className="font-grotesk text-xs sm:text-sm font-medium leading-tight text-warm min-w-0 break-words line-clamp-2">{match.homeTeam}</span>
+          <span className="font-grotesk text-xs sm:text-sm font-medium leading-tight text-warm min-w-0 whitespace-normal break-words text-center sm:text-start">{match.homeTeam}</span>
         </div>
         <div className="flex items-center gap-1 bg-navy border border-border rounded-md px-1.5 py-1.5 sm:px-2">
           <div className="flex items-center gap-1">
@@ -213,8 +213,8 @@ export function MatchCard({ match, boostAvailable, onSaved }: {
             <ScoreStepper value={away} onChange={setAway} disabled={inputsDisabled} label={match.awayTeam} />
           </div>
         </div>
-        <div className="min-w-0 flex items-center justify-end gap-2">
-          <span className="font-grotesk text-xs sm:text-sm font-medium leading-tight text-warm min-w-0 break-words line-clamp-2 text-end">{match.awayTeam}</span>
+        <div className="min-w-0 flex flex-col items-center gap-1 sm:flex-row sm:justify-end sm:gap-2">
+          <span className="font-grotesk text-xs sm:text-sm font-medium leading-tight text-warm min-w-0 whitespace-normal break-words text-center sm:text-end">{match.awayTeam}</span>
           <ClubLogo key={awayLogoUrl} src={awayLogoUrl} team={match.awayTeam} />
         </div>
       </div>
