@@ -75,6 +75,7 @@ async function syncFixturesAndResults() {
       homeResult: m.status === "FINISHED" || m.status === "AWARDED" ? m.score.fullTime.home : null,
       awayResult: m.status === "FINISHED" || m.status === "AWARDED" ? m.score.fullTime.away : null,
     })),
+    skipDuplicates: true,
   });
 
   // Cap total writes per invocation, executed sequentially. With a freshly-
