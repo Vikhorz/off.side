@@ -16,8 +16,11 @@ const LOGO_REQUEST_TIMEOUT = 5000;
 // Helper function to normalize team names for API search
 function normalizeTeamName(name: string): string {
   return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^\w\s]/g, " ") // Replace special characters with space
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\s]/g, " ") // Replace punctuation and symbols with spaces
     .replace(/\s+/g, " ") // Normalize whitespace
     .trim();
 }
@@ -126,6 +129,30 @@ const FOOTBALL_DATA_TEAM_IDS: Record<string, number> = {
   "strasbourg": 576, "rc strasbourg alsace": 576,
   "toulouse": 511, "toulouse fc": 511,
 };
+
+// 365Scores competitor IDs use a different namespace from football-data.org.
+// Keep this map explicit so we never mistake one provider's ID for another.
+// Add new IDs here after verifying the corresponding 365Scores team page.
+const SCORE365_COMPETITOR_IDS: Record<string, number> = {
+  "fc barcelona": 132,
+  "barcelona": 132,
+  "real madrid": 131,
+  "real madrid cf": 131,
+  "manchester united": 105,
+  "manchester united fc": 105,
+  "liverpool": 108,
+  "liverpool fc": 108,
+  "bayern munich": 331,
+  "bayern munchen": 331,
+  "fc bayern munich": 331,
+};
+
+function get365ScoresLogo(clubName: string): string | null {
+  const competitorId = SCORE365_COMPETITOR_IDS[normalizeTeamName(clubName)];
+  return competitorId
+    ? `https://imagecache.365scores.com/image/upload/f_png,w_64,h_64,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/${competitorId}`
+    : null;
+}
 
 function getFootballDataLogo(clubName: string): string | null {
   const normalizedName = normalizeTeamName(clubName);
@@ -245,6 +272,17 @@ const FALLBACK_LOGOS: Record<string, string> = {
   "default": "/logos/club-fallback.svg"
 };
 
+function getFallbackLogo(clubName: string): string {
+  const exact = FALLBACK_LOGOS[clubName];
+  if (exact) return exact;
+
+  const normalizedName = normalizeTeamName(clubName);
+  const matchingEntry = Object.entries(FALLBACK_LOGOS).find(
+    ([name]) => normalizeTeamName(name) === normalizedName,
+  );
+  return matchingEntry?.[1] ?? FALLBACK_LOGOS.default;
+}
+
 // Helper function to fetch with timeout
 async function fetchWithTimeout(url: string): Promise<Response> {
   const controller = new AbortController();
@@ -265,25 +303,30 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 
 // Function to fetch club logo from TheSportsDB API with timeout and cache expiration
 export async function fetchClubLogo(clubName: string): Promise<string> {
+  const cacheKey = normalizeTeamName(clubName);
   // Check cache first with expiration
-  const cached = logoCache[clubName];
+  const cached = logoCache[cacheKey];
   if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY_MS)) {
     return cached.url;
   }
 
+  const score365Logo = get365ScoresLogo(clubName);
+  if (score365Logo) {
+    logoCache[cacheKey] = { url: score365Logo, timestamp: Date.now() };
+    return score365Logo;
+  }
+
   const footballDataLogo = getFootballDataLogo(clubName);
   if (footballDataLogo) {
-    logoCache[clubName] = { url: footballDataLogo, timestamp: Date.now() };
+    logoCache[cacheKey] = { url: footballDataLogo, timestamp: Date.now() };
     return footballDataLogo;
   }
 
   // Check fallback first for faster response
-  if (FALLBACK_LOGOS[clubName]) {
-    logoCache[clubName] = {
-      url: FALLBACK_LOGOS[clubName],
-      timestamp: Date.now()
-    };
-    return FALLBACK_LOGOS[clubName];
+  const knownFallback = getFallbackLogo(clubName);
+  if (knownFallback !== FALLBACK_LOGOS.default) {
+    logoCache[cacheKey] = { url: knownFallback, timestamp: Date.now() };
+    return knownFallback;
   }
 
   try {
@@ -302,7 +345,7 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
 
     if (data.teams && data.teams.length > 0 && data.teams[0].strTeamBadge) {
       const logoUrl = data.teams[0].strTeamBadge;
-      logoCache[clubName] = {
+      logoCache[cacheKey] = {
         url: logoUrl,
         timestamp: Date.now()
       };
@@ -322,7 +365,7 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
 
     if (searchData.teams && searchData.teams.length > 0 && searchData.teams[0].strTeamBadge) {
       const logoUrl = searchData.teams[0].strTeamBadge;
-      logoCache[clubName] = {
+      logoCache[cacheKey] = {
         url: logoUrl,
         timestamp: Date.now()
       };
@@ -330,8 +373,8 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
     }
 
     // If still no result, use fallback or default
-    const fallback = FALLBACK_LOGOS[clubName] ?? FALLBACK_LOGOS.default;
-    logoCache[clubName] = {
+    const fallback = getFallbackLogo(clubName);
+    logoCache[cacheKey] = {
       url: fallback,
       timestamp: Date.now()
     };
@@ -339,8 +382,8 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
   } catch (error) {
     console.warn(`Failed to fetch logo for ${clubName}:`, error);
     // Return fallback or default
-    const fallback = FALLBACK_LOGOS[clubName] ?? FALLBACK_LOGOS.default;
-    logoCache[clubName] = {
+    const fallback = getFallbackLogo(clubName);
+    logoCache[cacheKey] = {
       url: fallback,
       timestamp: Date.now()
     };
@@ -350,17 +393,29 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
 
 // Synchronous wrapper for use in React components
 export function getClubLogo(clubName: string): string {
+  const cacheKey = normalizeTeamName(clubName);
   // Check cache first with expiration
-  const cached = logoCache[clubName];
+  const cached = logoCache[cacheKey];
   if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY_MS)) {
     return cached.url;
   }
 
   const footballDataLogo = getFootballDataLogo(clubName);
+  const score365Logo = get365ScoresLogo(clubName);
+  if (score365Logo) return score365Logo;
   if (footballDataLogo) return footballDataLogo;
 
   // Return fallback immediately for better UX
-  return FALLBACK_LOGOS[clubName] ?? FALLBACK_LOGOS.default;
+  return getFallbackLogo(clubName);
+}
+
+// Use an ordered provider list so a stale or temporarily unavailable remote
+// crest can fall through to another source and then to the local badge.
+export function getClubLogoCandidates(clubName: string): string[] {
+  const cacheKey = normalizeTeamName(clubName);
+  const cached = logoCache[cacheKey]?.url;
+  const candidates = [cached, get365ScoresLogo(clubName), getFootballDataLogo(clubName), getFallbackLogo(clubName)];
+  return [...new Set(candidates.filter((url): url is string => Boolean(url)))];
 }
 
 // Async version for when you need to fetch the actual logo

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Toast } from "./Toast";
 import { useI18n } from "@/lib/i18n";
-import { getClubLogo, getClubLogoAsync } from "@/lib/clubs";
+import { getClubLogo, getClubLogoAsync, getClubLogoCandidates } from "@/lib/clubs";
 
 type Prediction = { homeScore: number; awayScore: number; boosted: boolean; pointsAwarded: number | null } | null;
 
@@ -22,6 +22,12 @@ const LOCAL_LOGO_FALLBACK = "/logos/club-fallback.svg";
 
 function ClubLogo({ src, team }: { src: string; team: string }) {
   const [logoSrc, setLogoSrc] = useState(src);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+
+  useEffect(() => {
+    setLogoSrc(src);
+    setCandidateIndex(0);
+  }, [src]);
 
   return (
     <img
@@ -31,7 +37,14 @@ function ClubLogo({ src, team }: { src: string; team: string }) {
       height="24"
       className="h-6 w-6 rounded object-contain flex-shrink-0"
       onError={() => {
-        if (logoSrc !== LOCAL_LOGO_FALLBACK) setLogoSrc(LOCAL_LOGO_FALLBACK);
+        const candidates = getClubLogoCandidates(team);
+        const nextIndex = candidateIndex + 1;
+        if (nextIndex < candidates.length) {
+          setCandidateIndex(nextIndex);
+          setLogoSrc(candidates[nextIndex]);
+        } else if (logoSrc !== LOCAL_LOGO_FALLBACK) {
+          setLogoSrc(LOCAL_LOGO_FALLBACK);
+        }
       }}
     />
   );
