@@ -36,6 +36,12 @@ export async function GET() {
           }
         });
 
+        // Combine World Cup points with Premier League if present
+        if (pointsByCompetition['WC']) {
+          pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
+          delete pointsByCompetition['WC'];
+        }
+
         return {
           rank: idx + 1,
           username: `Tipster ${u.id}`, // Anonymous label using user ID
@@ -78,6 +84,12 @@ export async function GET() {
           pointsByCompetition[comp] = (pointsByCompetition[comp] || 0) + p.pointsAwarded;
         }
       });
+
+      // Combine World Cup points with Premier League if present
+      if (pointsByCompetition['WC']) {
+        pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
+        delete pointsByCompetition['WC'];
+      }
 
       return {
         rank: idx + 1,

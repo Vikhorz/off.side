@@ -56,6 +56,13 @@ export default function LeaderboardPage() {
         {top3.length > 0 && (
           <div className="grid grid-cols-3 items-end gap-2 mb-4">
             {top3.map((row: any) => {
+              // Combine World Cup points with Premier League if present
+              let pointsByCompetition = { ...(row.pointsByCompetition ?? {}) } as Record<string, number>;
+              if (pointsByCompetition['WC']) {
+                pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
+                delete pointsByCompetition['WC'];
+              }
+
               const style = medalStyles[row.rank] ?? medalStyles[3];
               return (
                 <div key={row.username} className={`relative min-w-0 rounded-xl p-3 text-center border border-border bg-card ${style.bg} ${style.ring} ${row.rank === 1 ? "-translate-y-1" : ""} rank-enter`}>
@@ -75,18 +82,11 @@ export default function LeaderboardPage() {
                   </div>
 
                   {/* Points by League for top 3 */}
-                  {row.pointsByCompetition && Object.keys(row.pointsByCompetition).length > 0 && (
-                    <div className="mt-2 flex flex-col gap-1 text-[10px] text-steel">
-                      {Object.entries(row.pointsByCompetition as Record<string, number>).map(([competition, points]) => (
-                        <div key={competition} className="flex items-center justify-between">
-                          <span className="flex-1">{/* Competition name mapping */}
-                            {competition === "PL" && t("competitions.pl")}
-                            {competition === "CL" && t("competitions.cl")}
-                            {competition === "PD" && t("competitions.pd")}
-                            {competition === "SA" && t("competitions.sa")}
-                            {competition === "FL1" && t("competitions.fl1")}
-                            {competition === "BL1" && t("competitions.bl1")}
-                          </span>
+                  {pointsByCompetition && Object.keys(pointsByCompetition).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-steel">
+                      {Object.entries(pointsByCompetition).map(([competition, points]) => (
+                        <div key={competition} className="flex items-center">
+                          <span className="mr-1 font-mono">{competition}:</span>
                           <span className="font-mono text-indigo-mid">{points}</span>
                         </div>
                       ))}
@@ -100,38 +100,40 @@ export default function LeaderboardPage() {
 
         {rest.length > 0 && (
           <div className="bg-card border border-border rounded-xl divide-y divide-border">
-            {rest.map((row: any) => (
-              <div key={row.username} className="flex items-center gap-3 px-4 py-3 rank-enter">
-                <span className="font-mono text-xs w-5 text-center text-steel">{row.rank}</span>
-                <div className="w-7 h-7 rounded-full bg-indigo-bg flex items-center justify-center text-[10px] font-medium text-indigo-mid flex-shrink-0">
-                  {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
-                </div>
-                <span className="text-sm font-medium text-warm flex-1">
-                  {isAuthenticated ? row.username : t("leaderboard.anonymous")}
-                </span>
-                <span className="text-[11px] text-steel whitespace-nowrap">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
-                <span className="font-mono text-sm font-medium text-indigo-mid">{row.totalPoints} pts</span>
+            {rest.map((row: any) => {
+              // Combine World Cup points with Premier League if present
+              let pointsByCompetition = { ...(row.pointsByCompetition ?? {}) } as Record<string, number>;
+              if (pointsByCompetition['WC']) {
+                pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
+                delete pointsByCompetition['WC'];
+              }
 
-                {/* Points by League for rest */}
-                {row.pointsByCompetition && Object.keys(row.pointsByCompetition).length > 0 && (
-                  <div className="mt-1 flex flex-col gap-0.5 text-[9px] text-steel">
-                    {Object.entries(row.pointsByCompetition as Record<string, number>).map(([competition, points]) => (
-                      <div key={competition} className="flex items-center justify-between">
-                        <span className="flex-1">{/* Competition name mapping */}
-                          {competition === "PL" && t("competitions.pl")}
-                          {competition === "CL" && t("competitions.cl")}
-                          {competition === "PD" && t("competitions.pd")}
-                          {competition === "SA" && t("competitions.sa")}
-                          {competition === "FL1" && t("competitions.fl1")}
-                          {competition === "BL1" && t("competitions.bl1")}
-                        </span>
-                        <span className="font-mono text-indigo-mid">{points}</span>
-                      </div>
-                    ))}
+              return (
+                <div key={row.username} className="flex items-center gap-3 px-4 py-3 rank-enter">
+                  <span className="font-mono text-xs w-5 text-center text-steel">{row.rank}</span>
+                  <div className="w-7 h-7 rounded-full bg-indigo-bg flex items-center justify-center text-[10px] font-medium text-indigo-mid flex-shrink-0">
+                    {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
                   </div>
-                )}
-              </div>
-            ))}
+                  <span className="text-sm font-medium text-warm flex-1">
+                    {isAuthenticated ? row.username : t("leaderboard.anonymous")}
+                  </span>
+                  <span className="text-[11px] text-steel whitespace-nowrap">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
+                  <span className="font-mono text-sm font-medium text-indigo-mid">{row.totalPoints} pts</span>
+
+                  {/* Points by League for rest */}
+                  {pointsByCompetition && Object.keys(pointsByCompetition).length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1 text-[9px] text-steel">
+                      {Object.entries(pointsByCompetition).map(([competition, points]) => (
+                        <div key={competition} className="flex items-center">
+                          <span className="mr-1 font-mono">{competition}:</span>
+                          <span className="font-mono text-indigo-mid">{points}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

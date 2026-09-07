@@ -27,6 +27,12 @@ export async function GET() {
       }
     });
 
+    // Combine World Cup points with Premier League if present
+    if (pointsByCompetition['WC']) {
+      pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
+      delete pointsByCompetition['WC'];
+    }
+
     const allUsers = await prisma.user.findMany({ select: { totalPoints: true } });
     const avg = allUsers.length
       ? Math.round(allUsers.reduce((a: number, u: { totalPoints: number }) => a + u.totalPoints, 0) / allUsers.length)

@@ -83,25 +83,29 @@ export default function StatsPage() {
 
         {/* Points by League */}
         {data.pointsByCompetition && Object.keys(data.pointsByCompetition).length > 0 && (
-          <div className="mt-6">
-            <h3 className="font-grotesk text-lg font-medium text-warm mb-4">{t("stats.pointsByLeague")}</h3>
-            <div className="grid gap-4">
-              {Object.entries(data.pointsByCompetition as Record<string, number>).map(([competition, points]) => (
-                <div key={competition} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
-                  <div className="text-xl font-mono font-medium text-indigo-mid mb-1 break-all max-w-xs">{points}</div>
-                  <div className="text-[10px] text-steel text-center">
-                    {/* Competition name mapping */}
-                    {competition === "PL" && t("competitions.pl")}
-                    {competition === "CL" && t("competitions.cl")}
-                    {competition === "PD" && t("competitions.pd")}
-                    {competition === "SA" && t("competitions.sa")}
-                    {competition === "FL1" && t("competitions.fl1")}
-                    {competition === "BL1" && t("competitions.bl1")}
-                  </div>
-                </div>
-              ))}
+          <>
+            <div className="mt-6">
+              <h3 className="font-grotesk text-lg font-medium text-warm mb-4">{t("stats.pointsByLeague")}</h3>
+              <div className="flex flex-wrap gap-4">
+                {(() => {
+                  const points = { ...(data.pointsByCompetition || {}) };
+                  if (points['WC']) {
+                    points['PL'] = (points['PL'] || 0) + points['WC'];
+                    delete points['WC'];
+                  }
+                  return Object.entries(points as Record<string, number>).map(([competition, points]) => (
+                    <div key={competition} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+                      <div className="text-xl font-mono font-medium text-indigo-mid mb-1 break-all max-w-xs">{points}</div>
+                      <div className="text-[10px] text-steel text-center">
+                        {/* Show competition abbreviation */}
+                        {competition}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
