@@ -87,9 +87,9 @@ export default function StatsPage() {
             <h3 className="font-grotesk text-lg font-medium text-warm mb-4">{t("stats.pointsByLeague")}</h3>
             <div className="grid gap-4">
               {Object.entries(data.pointsByCompetition as Record<string, number>).map(([competition, points]) => (
-                <div key={competition} className="bg-card border border-border rounded-xl p-4">
-                  <div className="text-2xl font-mono font-medium text-indigo-mid">{points}</div>
-                  <div className="text-[11px] text-steel mt-1">
+                <div key={competition} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+                  <div className="text-xl font-mono font-medium text-indigo-mid mb-1 break-all max-w-xs">{points}</div>
+                  <div className="text-[10px] text-steel text-center">
                     {/* Competition name mapping */}
                     {competition === "PL" && t("competitions.pl")}
                     {competition === "CL" && t("competitions.cl")}

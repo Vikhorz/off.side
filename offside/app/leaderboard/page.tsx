@@ -76,19 +76,19 @@ export default function LeaderboardPage() {
 
                   {/* Points by League for top 3 */}
                   {row.pointsByCompetition && Object.keys(row.pointsByCompetition).length > 0 && (
-                    <div className="mt-2 text-[10px] text-steel whitespace-nowrap">
+                    <div className="mt-2 flex flex-col gap-1 text-[10px] text-steel">
                       {Object.entries(row.pointsByCompetition as Record<string, number>).map(([competition, points]) => (
-                        <span key={competition} className="mr-2">
-                          {/* Competition name mapping */}
-                          {competition === "PL" && t("competitions.pl")}
-                          {competition === "CL" && t("competitions.cl")}
-                          {competition === "PD" && t("competitions.pd")}
-                          {competition === "SA" && t("competitions.sa")}
-                          {competition === "FL1" && t("competitions.fl1")}
-                          {competition === "BL1" && t("competitions.bl1")}
-                          {": "}
-                          {points}
-                        </span>
+                        <div key={competition} className="flex items-center justify-between">
+                          <span className="flex-1">{/* Competition name mapping */}
+                            {competition === "PL" && t("competitions.pl")}
+                            {competition === "CL" && t("competitions.cl")}
+                            {competition === "PD" && t("competitions.pd")}
+                            {competition === "SA" && t("competitions.sa")}
+                            {competition === "FL1" && t("competitions.fl1")}
+                            {competition === "BL1" && t("competitions.bl1")}
+                          </span>
+                          <span className="font-mono text-indigo-mid">{points}</span>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -114,19 +114,19 @@ export default function LeaderboardPage() {
 
                 {/* Points by League for rest */}
                 {row.pointsByCompetition && Object.keys(row.pointsByCompetition).length > 0 && (
-                  <div className="mt-1 text-[9px] text-steel whitespace-nowrap">
+                  <div className="mt-1 flex flex-col gap-0.5 text-[9px] text-steel">
                     {Object.entries(row.pointsByCompetition as Record<string, number>).map(([competition, points]) => (
-                      <span key={competition} className="mr-1">
-                        {/* Competition name mapping */}
-                        {competition === "PL" && t("competitions.pl")}
-                        {competition === "CL" && t("competitions.cl")}
-                        {competition === "PD" && t("competitions.pd")}
-                        {competition === "SA" && t("competitions.sa")}
-                        {competition === "FL1" && t("competitions.fl1")}
-                        {competition === "BL1" && t("competitions.bl1")}
-                        {": "}
-                        {points}
-                      </span>
+                      <div key={competition} className="flex items-center justify-between">
+                        <span className="flex-1">{/* Competition name mapping */}
+                          {competition === "PL" && t("competitions.pl")}
+                          {competition === "CL" && t("competitions.cl")}
+                          {competition === "PD" && t("competitions.pd")}
+                          {competition === "SA" && t("competitions.sa")}
+                          {competition === "FL1" && t("competitions.fl1")}
+                          {competition === "BL1" && t("competitions.bl1")}
+                        </span>
+                        <span className="font-mono text-indigo-mid">{points}</span>
+                      </div>
                     ))}
                   </div>
                 )}
