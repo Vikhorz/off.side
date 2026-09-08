@@ -12,6 +12,17 @@ const medalStyles: Record<number, { bg: string; ring: string; label: string }> =
   3: { bg: "bg-gradient-to-br from-orange-400/15 to-transparent", ring: "ring-1 ring-orange-400/30", label: "🥉" },
 };
 
+function getVisibleCompetitionPoints(pointsByCompetition: Record<string, number> = {}) {
+  const visiblePoints = { ...pointsByCompetition };
+
+  if (Object.prototype.hasOwnProperty.call(visiblePoints, "WC")) {
+    visiblePoints.PL = (visiblePoints.PL || 0) + visiblePoints.WC;
+    delete visiblePoints.WC;
+  }
+
+  return visiblePoints;
+}
+
 export default function LeaderboardPage() {
   const { t } = useI18n();
   const { data } = useSWR("/api/leaderboard", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
@@ -56,37 +67,32 @@ export default function LeaderboardPage() {
         {top3.length > 0 && (
           <div className="grid grid-cols-3 items-end gap-2 mb-4">
             {top3.map((row: any) => {
-              // Combine World Cup points with Premier League if present
-              let pointsByCompetition = { ...(row.pointsByCompetition ?? {}) } as Record<string, number>;
-              if (pointsByCompetition['WC']) {
-                pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
-                delete pointsByCompetition['WC'];
-              }
+              const pointsByCompetition = getVisibleCompetitionPoints(row.pointsByCompetition);
 
               const style = medalStyles[row.rank] ?? medalStyles[3];
               return (
-                <div key={row.username} className={`relative min-w-0 rounded-xl p-3 text-center border border-border bg-card ${style.bg} ${style.ring} ${row.rank === 1 ? "-translate-y-1" : ""} rank-enter`}>
+                <div key={row.username} className={`relative min-w-0 rounded-xl p-2.5 sm:p-3 text-center border border-border bg-card ${style.bg} ${style.ring} ${row.rank === 1 ? "-translate-y-1" : ""} rank-enter`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-mono text-[10px] text-steel">#{row.rank}</span>
-                    <span className="text-lg leading-none">{style.label}</span>
+                    <span className="text-base sm:text-lg leading-none">{style.label}</span>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-indigo-bg flex items-center justify-center text-[11px] font-medium text-indigo-mid mx-auto mb-2">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-bg flex items-center justify-center text-[10px] sm:text-[11px] font-medium text-indigo-mid mx-auto mb-2">
                     {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
                   </div>
-                  <div className="text-xs font-medium text-warm truncate min-h-4">
+                  <div className="text-[11px] sm:text-xs font-medium text-warm truncate min-h-4">
                     {isAuthenticated ? row.username : t("leaderboard.anonymous")}
                   </div>
-                  <div className="font-mono text-sm font-medium text-indigo-mid mt-2">{row.totalPoints} pts</div>
-                  <div className="text-[10px] text-steel mt-0.5 whitespace-nowrap">
+                  <div className="font-mono text-base sm:text-lg font-medium text-indigo-mid mt-2 leading-tight">{row.totalPoints} pts</div>
+                  <div className="text-[9px] sm:text-[10px] text-steel mt-1 whitespace-nowrap">
                     {row.scored}/{row.predictions} {t("leaderboard.scored")}
                   </div>
 
                   {/* Points by League for top 3 */}
                   {pointsByCompetition && Object.keys(pointsByCompetition).length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-steel">
+                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] sm:text-[10px] text-steel text-left">
                       {Object.entries(pointsByCompetition).map(([competition, points]) => (
-                        <div key={competition} className="flex items-center">
-                          <span className="mr-1 font-mono">{competition}:</span>
+                        <div key={competition} className="flex min-w-0 items-center justify-between gap-1">
+                          <span className="font-mono truncate">{competition}:</span>
                           <span className="font-mono text-indigo-mid">{points}</span>
                         </div>
                       ))}
@@ -101,28 +107,23 @@ export default function LeaderboardPage() {
         {rest.length > 0 && (
           <div className="bg-card border border-border rounded-xl divide-y divide-border">
             {rest.map((row: any) => {
-              // Combine World Cup points with Premier League if present
-              let pointsByCompetition = { ...(row.pointsByCompetition ?? {}) } as Record<string, number>;
-              if (pointsByCompetition['WC']) {
-                pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
-                delete pointsByCompetition['WC'];
-              }
+              const pointsByCompetition = getVisibleCompetitionPoints(row.pointsByCompetition);
 
               return (
-                <div key={row.username} className="flex items-center gap-3 px-4 py-3 rank-enter">
+                <div key={row.username} className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 sm:gap-x-3 gap-y-1 px-3 sm:px-4 py-3 rank-enter">
                   <span className="font-mono text-xs w-5 text-center text-steel">{row.rank}</span>
                   <div className="w-7 h-7 rounded-full bg-indigo-bg flex items-center justify-center text-[10px] font-medium text-indigo-mid flex-shrink-0">
                     {isAuthenticated ? row.username.slice(0, 2).toUpperCase() : "??"}
                   </div>
-                  <span className="text-sm font-medium text-warm flex-1">
+                  <span className="min-w-0 truncate text-xs sm:text-sm font-medium text-warm">
                     {isAuthenticated ? row.username : t("leaderboard.anonymous")}
                   </span>
-                  <span className="text-[11px] text-steel whitespace-nowrap">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
-                  <span className="font-mono text-sm font-medium text-indigo-mid">{row.totalPoints} pts</span>
+                  <span className="text-[10px] sm:text-[11px] text-steel whitespace-nowrap">{row.scored}/{row.predictions} {t("leaderboard.scored")}</span>
+                  <span className="font-mono text-sm sm:text-base font-medium text-indigo-mid whitespace-nowrap">{row.totalPoints} pts</span>
 
                   {/* Points by League for rest */}
                   {pointsByCompetition && Object.keys(pointsByCompetition).length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1 text-[9px] text-steel">
+                    <div className="col-span-5 ml-10 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-steel">
                       {Object.entries(pointsByCompetition).map(([competition, points]) => (
                         <div key={competition} className="flex items-center">
                           <span className="mr-1 font-mono">{competition}:</span>

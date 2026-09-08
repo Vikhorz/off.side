@@ -37,7 +37,7 @@ export async function GET() {
         });
 
         // Combine World Cup points with Premier League if present
-        if (pointsByCompetition['WC']) {
+        if (Object.prototype.hasOwnProperty.call(pointsByCompetition, 'WC')) {
           pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
           delete pointsByCompetition['WC'];
         }
@@ -86,7 +86,7 @@ export async function GET() {
       });
 
       // Combine World Cup points with Premier League if present
-      if (pointsByCompetition['WC']) {
+      if (Object.prototype.hasOwnProperty.call(pointsByCompetition, 'WC')) {
         pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
         delete pointsByCompetition['WC'];
       }
