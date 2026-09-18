@@ -1,10 +1,21 @@
 "use client";
+import { useState } from "react";
 import useSWR from "swr";
 import { Navbar } from "@/components/Navbar";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "next-auth/react";
+import { COMPETITIONS } from "@/lib/competitions";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+type LeaderboardRow = {
+  rank: number;
+  username: string;
+  totalPoints: number;
+  predictions: number;
+  scored: number;
+  pointsByCompetition: Record<string, number>;
+};
 
 const medalStyles: Record<number, { bg: string; ring: string; label: string }> = {
   1: { bg: "bg-gradient-to-br from-amber-400/20 to-transparent", ring: "ring-1 ring-amber-400/40", label: "🥇" },
@@ -25,7 +36,9 @@ function getVisibleCompetitionPoints(pointsByCompetition: Record<string, number>
 
 export default function LeaderboardPage() {
   const { t } = useI18n();
-  const { data } = useSWR("/api/leaderboard", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
+  const [competition, setCompetition] = useState<string | null>(null);
+  const leaderboardUrl = competition ? `/api/leaderboard?competition=${competition}` : "/api/leaderboard";
+  const { data } = useSWR<LeaderboardRow[]>(leaderboardUrl, fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
 
@@ -37,6 +50,24 @@ export default function LeaderboardPage() {
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-6">
         <h2 className="font-grotesk text-lg font-medium text-warm mb-4">{t("leaderboard.title")}</h2>
+
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 scrollbar-hide">
+          <button
+            onClick={() => setCompetition(null)}
+            className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${competition === null ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"}`}
+          >
+            All
+          </button>
+          {COMPETITIONS.map((item) => (
+            <button
+              key={item.code}
+              onClick={() => setCompetition(item.code)}
+              className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${competition === item.code ? "bg-indigo-bg border-indigo text-indigo-mid" : "border-border text-steel"}`}
+            >
+              {t(`competitions.${item.code.toLowerCase()}`)}
+            </button>
+          ))}
+        </div>
 
         {!isAuthenticated && (
           <div className="mb-6 p-4 bg-indigo/5 rounded-xl border border-indigo/20">
@@ -66,12 +97,12 @@ export default function LeaderboardPage() {
 
         {top3.length > 0 && (
           <div className="grid grid-cols-3 items-end gap-2 mb-4">
-            {top3.map((row: any) => {
+            {top3.map((row) => {
               const pointsByCompetition = getVisibleCompetitionPoints(row.pointsByCompetition);
 
               const style = medalStyles[row.rank] ?? medalStyles[3];
               return (
-                <div key={row.username} className={`relative min-w-0 rounded-xl p-2.5 sm:p-3 text-center border border-border bg-card ${style.bg} ${style.ring} ${row.rank === 1 ? "-translate-y-1" : ""} rank-enter`}>
+                <div key={row.username} className={`relative min-w-0 h-[210px] sm:h-[220px] rounded-xl p-2.5 sm:p-3 text-center border border-border bg-card ${style.bg} ${style.ring} ${row.rank === 1 ? "-translate-y-1" : ""} rank-enter flex flex-col`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-mono text-[10px] text-steel">#{row.rank}</span>
                     <span className="text-base sm:text-lg leading-none">{style.label}</span>
@@ -89,7 +120,7 @@ export default function LeaderboardPage() {
 
                   {/* Points by League for top 3 */}
                   {pointsByCompetition && Object.keys(pointsByCompetition).length > 0 && (
-                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] sm:text-[10px] text-steel text-left">
+                    <div className="mt-auto pt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] sm:text-[10px] text-steel text-left">
                       {Object.entries(pointsByCompetition).map(([competition, points]) => (
                         <div key={competition} className="flex min-w-0 items-center justify-between gap-1">
                           <span className="font-mono truncate">{competition}:</span>
@@ -106,7 +137,7 @@ export default function LeaderboardPage() {
 
         {rest.length > 0 && (
           <div className="bg-card border border-border rounded-xl divide-y divide-border">
-            {rest.map((row: any) => {
+            {rest.map((row) => {
               const pointsByCompetition = getVisibleCompetitionPoints(row.pointsByCompetition);
 
               return (

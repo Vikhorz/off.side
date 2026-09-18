@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { ThemeToggle } from "./ThemeToggle";
-import { LanguageToggle } from "./LanguageToggle";
 import { useI18n } from "@/lib/i18n";
 
 function useLinks() {
@@ -61,7 +60,6 @@ export function Navbar() {
               </Link>
             ))}
           </div>
-          <LanguageToggle />
           <ThemeToggle />
           {session && (
             <button

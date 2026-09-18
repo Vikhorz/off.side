@@ -1,62 +1,48 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-export async function GET() {
+type CompetitionStats = {
+  points: number;
+  predictions: number;
+  scored: number;
+};
+
+type LeaderboardPrediction = {
+  pointsAwarded: number | null;
+  match: { competition: string } | null;
+};
+
+type LeaderboardUser = {
+  id: string;
+  username: string;
+  totalPoints: number;
+  predictions: LeaderboardPrediction[];
+};
+
+function getCompetitionStats(predictions: LeaderboardPrediction[]): Record<string, CompetitionStats> {
+  const stats: Record<string, CompetitionStats> = {};
+
+  predictions.forEach((prediction) => {
+    if (!prediction.match) return;
+    const competition = prediction.match.competition === "WC" ? "PL" : prediction.match.competition;
+    const current = stats[competition] ?? { points: 0, predictions: 0, scored: 0 };
+    current.predictions += 1;
+    if (prediction.pointsAwarded !== null) {
+      current.points += prediction.pointsAwarded;
+      current.scored += 1;
+    }
+    stats[competition] = current;
+  });
+
+  return stats;
+}
+
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-
-    // If not authenticated, return anonymized data
-    if (!session) {
-      const users = await prisma.user.findMany({
-        orderBy: { totalPoints: "desc" },
-        select: {
-          id: true,
-          totalPoints: true,
-          predictions: {
-            select: {
-              pointsAwarded: true,
-              match: {
-                select: {
-                  competition: true
-                }
-              }
-            }
-          }
-        },
-      });
-
-      const leaderboard = users.map((u: typeof users[number], idx: number) => {
-        // Calculate points by competition for anonymous users
-        const pointsByCompetition: Record<string, number> = {};
-        u.predictions.forEach((p: any) => {
-          if (p.pointsAwarded !== null && p.match) {
-            const comp = p.match.competition;
-            pointsByCompetition[comp] = (pointsByCompetition[comp] || 0) + p.pointsAwarded;
-          }
-        });
-
-        // Combine World Cup points with Premier League if present
-        if (Object.prototype.hasOwnProperty.call(pointsByCompetition, 'WC')) {
-          pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
-          delete pointsByCompetition['WC'];
-        }
-
-        return {
-          rank: idx + 1,
-          username: `Tipster ${u.id}`, // Anonymous label using user ID
-          totalPoints: u.totalPoints,
-          predictions: u.predictions.length,
-          scored: u.predictions.filter((p: { pointsAwarded: number | null }) => p.pointsAwarded !== null).length,
-          pointsByCompetition,
-        };
-      });
-
-      return NextResponse.json(leaderboard);
-    }
-
-    // If authenticated, return real data
-    const users = await prisma.user.findMany({
+    const competition = request.nextUrl.searchParams.get("competition");
+    const users: LeaderboardUser[] = await prisma.user.findMany({
       orderBy: { totalPoints: "desc" },
       select: {
         id: true,
@@ -66,40 +52,35 @@ export async function GET() {
           select: {
             pointsAwarded: true,
             match: {
-              select: {
-                competition: true
-              }
-            }
-          }
+              select: { competition: true },
+            },
+          },
         },
       },
     });
 
-    const leaderboard = users.map((u: typeof users[number], idx: number) => {
-      // Calculate points by competition for authenticated users
-      const pointsByCompetition: Record<string, number> = {};
-      u.predictions.forEach((p: any) => {
-        if (p.pointsAwarded !== null && p.match) {
-          const comp = p.match.competition;
-          pointsByCompetition[comp] = (pointsByCompetition[comp] || 0) + p.pointsAwarded;
-        }
-      });
+    const leaderboard = users
+      .map((user: LeaderboardUser) => {
+        const competitionStats = getCompetitionStats(user.predictions);
+        const selectedStats = competition ? competitionStats[competition] : null;
 
-      // Combine World Cup points with Premier League if present
-      if (Object.prototype.hasOwnProperty.call(pointsByCompetition, 'WC')) {
-        pointsByCompetition['PL'] = (pointsByCompetition['PL'] || 0) + pointsByCompetition['WC'];
-        delete pointsByCompetition['WC'];
-      }
-
-      return {
-        rank: idx + 1,
-        username: u.username,
-        totalPoints: u.totalPoints,
-        predictions: u.predictions.length,
-        scored: u.predictions.filter((p: { pointsAwarded: number | null }) => p.pointsAwarded !== null).length,
-        pointsByCompetition,
-      };
-    });
+        return {
+          username: session ? user.username : `Tipster ${user.id}`,
+          totalPoints: selectedStats?.points ?? user.totalPoints,
+          predictions: selectedStats?.predictions ?? user.predictions.length,
+          scored: selectedStats?.scored ?? user.predictions.filter((prediction: LeaderboardPrediction) => prediction.pointsAwarded !== null).length,
+          pointsByCompetition: Object.fromEntries(
+            Object.entries(competitionStats).map(([code, stats]) => [code, stats.points]),
+          ),
+        };
+      })
+      .sort((a: { totalPoints: number; username: string }, b: { totalPoints: number; username: string }) =>
+        b.totalPoints - a.totalPoints || a.username.localeCompare(b.username))
+      .map((row: Omit<LeaderboardUser, "id" | "predictions"> & {
+        predictions: number;
+        scored: number;
+        pointsByCompetition: Record<string, number>;
+      }, index: number) => ({ rank: index + 1, ...row }));
 
     return NextResponse.json(leaderboard);
   } catch (error) {

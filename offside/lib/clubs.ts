@@ -376,21 +376,12 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
     }
 
     // If still no result, use fallback or default
-    const fallback = getFallbackLogo(clubName);
-    logoCache[cacheKey] = {
-      url: fallback,
-      timestamp: Date.now()
-    };
-    return fallback;
+    return getFallbackLogo(clubName);
   } catch (error) {
     console.warn(`Failed to fetch logo for ${clubName}:`, error);
-    // Return fallback or default
-    const fallback = getFallbackLogo(clubName);
-    logoCache[cacheKey] = {
-      url: fallback,
-      timestamp: Date.now()
-    };
-    return fallback;
+    // Do not cache a failed lookup: a transient provider failure should not
+    // suppress a later retry for the rest of the cache window.
+    return getFallbackLogo(clubName);
   }
 }
 
