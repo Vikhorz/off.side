@@ -62,13 +62,17 @@ export async function GET(request: NextRequest) {
     const leaderboard = users
       .map((user: LeaderboardUser) => {
         const competitionStats = getCompetitionStats(user.predictions);
-        const selectedStats = competition ? competitionStats[competition] : null;
+        const selectedStats = competition
+          ? competitionStats[competition] ?? { points: 0, predictions: 0, scored: 0 }
+          : null;
 
         return {
           username: session ? user.username : `Tipster ${user.id}`,
-          totalPoints: selectedStats?.points ?? user.totalPoints,
-          predictions: selectedStats?.predictions ?? user.predictions.length,
-          scored: selectedStats?.scored ?? user.predictions.filter((prediction: LeaderboardPrediction) => prediction.pointsAwarded !== null).length,
+          totalPoints: selectedStats ? selectedStats.points : user.totalPoints,
+          predictions: selectedStats ? selectedStats.predictions : user.predictions.length,
+          scored: selectedStats
+            ? selectedStats.scored
+            : user.predictions.filter((prediction: LeaderboardPrediction) => prediction.pointsAwarded !== null).length,
           pointsByCompetition: Object.fromEntries(
             Object.entries(competitionStats).map(([code, stats]) => [code, stats.points]),
           ),
