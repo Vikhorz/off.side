@@ -163,6 +163,10 @@ function getFootballDataLogo(clubName: string): string | null {
   return teamId ? `https://crests.football-data.org/${teamId}.png` : null;
 }
 
+function getProxiedLogo(clubName: string): string {
+  return `/api/club-logo?team=${encodeURIComponent(clubName)}`;
+}
+
 // Fallback logos for common teams (in case API fails)
 const FALLBACK_LOGOS: Record<string, string> = {
   // Premier League
@@ -375,13 +379,14 @@ export async function fetchClubLogo(clubName: string): Promise<string> {
       return logoUrl;
     }
 
-    // If still no result, use fallback or default
-    return getFallbackLogo(clubName);
+    // Let the server-side proxy retry provider access without browser CORS
+    // restrictions or a client-side blocked request.
+    return getProxiedLogo(clubName);
   } catch (error) {
     console.warn(`Failed to fetch logo for ${clubName}:`, error);
     // Do not cache a failed lookup: a transient provider failure should not
     // suppress a later retry for the rest of the cache window.
-    return getFallbackLogo(clubName);
+    return getProxiedLogo(clubName);
   }
 }
 
@@ -399,8 +404,8 @@ export function getClubLogo(clubName: string): string {
   if (score365Logo) return score365Logo;
   if (footballDataLogo) return footballDataLogo;
 
-  // Return fallback immediately for better UX
-  return getFallbackLogo(clubName);
+  // The proxy can resolve names that are not in the static provider maps.
+  return getProxiedLogo(clubName);
 }
 
 // Use an ordered provider list so a stale or temporarily unavailable remote
@@ -408,7 +413,13 @@ export function getClubLogo(clubName: string): string {
 export function getClubLogoCandidates(clubName: string): string[] {
   const cacheKey = normalizeTeamName(clubName);
   const cached = logoCache[cacheKey]?.url;
-  const candidates = [cached, get365ScoresLogo(clubName), getFootballDataLogo(clubName), getFallbackLogo(clubName)];
+  const candidates = [
+    cached,
+    get365ScoresLogo(clubName),
+    getFootballDataLogo(clubName),
+    getProxiedLogo(clubName),
+    getFallbackLogo(clubName),
+  ];
   return [...new Set(candidates.filter((url): url is string => Boolean(url)))];
 }
 
